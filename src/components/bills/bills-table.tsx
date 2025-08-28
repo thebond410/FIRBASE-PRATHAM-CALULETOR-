@@ -202,6 +202,8 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
+      // Check for invalid date which can result from parsing `null` or incorrect format
+      if (isNaN(date.getTime())) return '';
       return format(date, 'dd/MM/yy');
     } catch (e) {
       return dateString; // fallback to original string if parsing fails
@@ -346,4 +348,3 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     </>
   );
 }
-

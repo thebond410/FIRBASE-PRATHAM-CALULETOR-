@@ -39,6 +39,7 @@ function parseCSV(text: string): Record<string, any>[] {
     const rows = lines.slice(1);
 
     return rows.map(row => {
+        // This regex handles comma-separated values, including those enclosed in double quotes.
         const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
         if (values.length === 0) return null;
         
@@ -54,6 +55,7 @@ function parseExcel(buffer: ArrayBuffer): Record<string, any>[] {
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
+    // This will produce an array of JSON objects, where keys are the header names.
     return xlsx.utils.sheet_to_json(worksheet);
 }
 
@@ -86,12 +88,13 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
     const billsToInsert: Omit<Bill, 'id' | 'created_at' | 'updated_at'>[] = [];
 
     for (const billData of jsonData) {
-        // A mapping of expected keys (lowercase, no spaces) to the keys found in the file
+        // Create a mapping of lowercase, space-removed header names to their original keys
         const keyMap: { [key: string]: string } = {};
         for (const key in billData) {
             keyMap[key.replace(/\s+/g, '').toLowerCase()] = key;
         }
 
+        // Helper function to safely get values using the mapped keys
         const getValue = (key: string) => {
             const mappedKey = keyMap[key.toLowerCase().replace(/\s+/g, '')];
             return mappedKey ? billData[mappedKey] : undefined;
@@ -104,7 +107,7 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         }
         
         const recDateValue = getValue('recDate');
-        const parsedRecDate = (recDateValue !== null && recDateValue !== undefined && recDateValue !== '') ? parseDate(String(recDateValue)) : null;
+        const parsedRecDate = (recDateValue !== null && recDateValue !== undefined && String(recDateValue).trim() !== '') ? parseDate(String(recDateValue)) : null;
 
         if (recDateValue && !parsedRecDate) {
              console.warn(`Skipping row due to invalid recDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
@@ -135,6 +138,7 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
     }
 
     try {
+        // Using a single insert operation for batch processing is much faster.
         const { error } = await supabase.from('bills').insert(billsToInsert);
         if (error) throw error;
         return { success: true, count: billsToInsert.length };
