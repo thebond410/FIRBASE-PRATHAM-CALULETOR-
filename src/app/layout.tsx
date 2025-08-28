@@ -6,6 +6,7 @@ import { AuthProvider } from '@/contexts/auth-context';
 export const metadata: Metadata = {
   title: 'Interest Insight',
   description: 'A comprehensive app for calculating interest on outstanding bills.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

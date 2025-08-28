@@ -124,9 +124,9 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     });
   }, [data, sortKey, sortOrder]);
 
-  const TableHeaderItem = ({ sortKey: key, label }: { sortKey: keyof CalculatedBill, label: string }) => (
-    <TableHead className="p-1">
-        <Button variant="ghost" onClick={() => handleSort(key)} className="px-2 py-1 h-auto font-bold text-sm">
+  const TableHeaderItem = ({ sortKey: key, label, className }: { sortKey: keyof CalculatedBill, label: string, className?: string }) => (
+    <TableHead className={cn("p-1 text-white", className)}>
+        <Button variant="ghost" onClick={() => handleSort(key)} className="px-2 py-1 h-auto text-sm text-white hover:text-white/90">
             {label}
         </Button>
     </TableHead>
@@ -138,18 +138,18 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
         <div className="w-full overflow-x-auto">
             <Table>
                 <TableHeader>
-                <TableRow>
-                    <TableHead className="w-[40px] p-1 font-bold">Sr.</TableHead>
-                    <TableHeaderItem sortKey="billDate" label="Bill Date" />
-                    <TableHeaderItem sortKey="billNo" label="Bill No" />
-                    <TableHeaderItem sortKey="party" label="Party" />
-                    <TableHeaderItem sortKey="netAmount" label="Net Amt" />
-                    <TableHeaderItem sortKey="creditDays" label="Cr. Days" />
-                    <TableHeaderItem sortKey="recDate" label="Rec. Date" />
-                    <TableHeaderItem sortKey="totalDays" label="Total Days" />
-                    <TableHeaderItem sortKey="interestDays" label="Int. Days" />
-                    <TableHeaderItem sortKey="interestAmount" label="Int. Amt" />
-                    <TableHead className="text-right p-1 font-bold">Actions</TableHead>
+                <TableRow className="bg-primary hover:bg-primary/90">
+                    <TableHead className="w-[40px] p-1 text-white font-bold">Sr.</TableHead>
+                    <TableHeaderItem sortKey="billDate" label="Date" className="bg-gradient-to-r from-blue-600 to-blue-500" />
+                    <TableHeaderItem sortKey="billNo" label="Bill#" className="bg-gradient-to-r from-green-600 to-green-500"/>
+                    <TableHeaderItem sortKey="party" label="Party" className="bg-gradient-to-r from-indigo-600 to-indigo-500"/>
+                    <TableHeaderItem sortKey="netAmount" label="Net Amt" className="bg-gradient-to-r from-purple-600 to-purple-500"/>
+                    <TableHeaderItem sortKey="creditDays" label="Cr. Days" className="bg-gradient-to-r from-pink-600 to-pink-500"/>
+                    <TableHeaderItem sortKey="recDate" label="Rec. Date" className="bg-gradient-to-r from-red-600 to-red-500"/>
+                    <TableHeaderItem sortKey="totalDays" label="Total Days" className="bg-gradient-to-r from-orange-600 to-orange-500"/>
+                    <TableHeaderItem sortKey="interestDays" label="Int. Days" className="bg-gradient-to-r from-yellow-600 to-yellow-500"/>
+                    <TableHeaderItem sortKey="interestAmount" label="Int. Amt" className="bg-gradient-to-r from-teal-600 to-teal-500"/>
+                    <TableHead className="text-right p-1 text-white font-bold">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -157,12 +157,12 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                     <TableRow 
                         key={bill.id} 
                         onClick={() => handleRowClick(bill.id)}
-                        className={cn('font-mono cursor-pointer', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : 'bg-card')}
+                        className={cn('font-bold cursor-pointer my-2', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : 'bg-card')}
                     >
                     <TableCell className="font-sans m-px p-1">{index + 1}</TableCell>
-                    <TableCell className="font-medium text-primary/80 m-px p-1">{bill.billDate}</TableCell>
-                    <TableCell className="font-medium text-primary/80 m-px p-1">{bill.billNo}</TableCell>
-                    <TableCell className="font-medium text-primary/80 whitespace-nowrap m-px p-1 max-w-[10ch] truncate">{bill.party}</TableCell>
+                    <TableCell className="font-bold text-primary/80 m-px p-1">{bill.billDate}</TableCell>
+                    <TableCell className="font-bold text-primary/80 m-px p-1">{bill.billNo}</TableCell>
+                    <TableCell className="font-bold text-primary/80 whitespace-nowrap m-px p-1 max-w-[10ch] truncate">{bill.party}</TableCell>
                     <TableCell className="m-px p-1">₹{bill.netAmount.toLocaleString('en-IN')}</TableCell>
                     <TableCell className="m-px p-1">{bill.creditDays}</TableCell>
                     <TableCell className="m-px p-1">{bill.recDate || '-'}</TableCell>

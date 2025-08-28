@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 
 type Summary = {
@@ -63,6 +64,14 @@ const actionButtons = [
     { label: "List", icon: Download, gradient: "from-green-500 to-lime-500" },
 ];
 
+const partyCardColors = [
+  "from-orange-50 to-yellow-50 border-orange-400",
+  "from-blue-50 to-indigo-50 border-blue-400",
+  "from-green-50 to-lime-50 border-green-400",
+  "from-pink-50 to-red-50 border-pink-400",
+  "from-purple-50 to-violet-50 border-purple-400",
+];
+
 export default function DashboardPage() {
   const router = useRouter();
   const bills = getCalculatedBills();
@@ -80,8 +89,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col space-y-4 p-4">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+    <div className="flex flex-col space-y-4 p-0">
+      <h1 className="text-xl font-bold tracking-tight">Dashboard</h1>
 
       <section className="grid grid-cols-4 gap-2">
         {actionButtons.map(btn => (
@@ -92,14 +101,14 @@ export default function DashboardPage() {
         ))}
          <Button onClick={() => setAlertOpen(true)} className="text-white font-semibold text-xs h-12 bg-gradient-to-r from-red-500 to-pink-500 hover:opacity-90 transition-opacity">
             <Trash2 className="mr-1 h-4 w-4" />
-            Remove All
+            Clear
         </Button>
       </section>
 
       <section className="grid md:grid-cols-3 gap-4">
         {summaryCards.map((card) => (
           <Card key={card.title} className="overflow-hidden border-0 shadow-lg">
-            <div className={`bg-gradient-to-br ${card.gradient} p-6`}>
+            <div className={`bg-gradient-to-br ${card.gradient} p-4`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
                 <CardTitle className="text-sm font-medium text-white">{card.title}</CardTitle>
                 <card.icon className="h-5 w-5 text-white/80" />
@@ -115,12 +124,12 @@ export default function DashboardPage() {
       <section className="space-y-2">
         <h2 className="text-sm font-bold tracking-tight">Overdue Parties</h2>
         {overdueParties.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {overdueParties.map((party) => (
-              <Card key={party.party} onClick={() => handlePartyClick(party.party)} className="shadow-md border-0 bg-gradient-to-tr from-orange-50 to-yellow-50 border-l-4 border-orange-400 cursor-pointer">
+            <div className="grid grid-cols-3 gap-4">
+            {overdueParties.map((party, index) => (
+              <Card key={party.party} onClick={() => handlePartyClick(party.party)} className={cn("shadow-md border-0 bg-gradient-to-tr border-l-4 cursor-pointer", partyCardColors[index % partyCardColors.length])}>
                 <CardHeader className="p-4">
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <User className="h-5 w-5 text-orange-600" />
+                    <User className="h-5 w-5" />
                     {party.party}
                   </CardTitle>
                 </CardHeader>
