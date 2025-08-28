@@ -118,18 +118,12 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
   };
 
   const handleWhatsAppMessage = (bill: CalculatedBill) => {
-    let template;
-    // Condition 1: recDate exists and interest is paid
-    if (bill.recDate && bill.interestPaid === 'Yes') {
-        template = whatsappTemplates.paymentThanks;
-    // Condition 2: recDate exists but interest is NOT paid
-    } else if (bill.recDate && bill.interestPaid === 'No') {
-        template = whatsappTemplates.pendingInterest;
-    // Condition 3: recDate does not exist
-    } else {
-        template = whatsappTemplates.noRecDate;
+    let templateKey: keyof typeof whatsappTemplates = 'noRecDate';
+    if (bill.recDate) {
+        templateKey = bill.interestPaid === 'Yes' ? 'paymentThanks' : 'pendingInterest';
     }
-    
+    const template = whatsappTemplates[templateKey];
+
     const message = template
       .replace(/\[Party\]/g, bill.party)
       .replace(/\[Bill No\]/g, bill.billNo)
@@ -143,7 +137,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
       .replace(/\[Rec Date\]/g, bill.recDate ? format(new Date(bill.recDate), 'dd/MM/yy') : '')
       .replace(/\[Interest Days\]/g, bill.interestDays.toString())
       .replace(/\[Interest Amount\]/g, bill.interestAmount.toFixed(2));
-      
+
     const whatsappUrl = `https://wa.me/${bill.mobile}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -262,7 +256,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                             </TableHead>
                         );
                     })}
-                    <TableHead className="text-right px-1 text-white font-bold sticky right-0 z-20 bg-primary h-auto py-1 min-w-[120px]">Actions</TableHead>
+                    <TableHead className="text-right px-1 text-white font-bold h-auto py-1 min-w-[100px]">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -289,7 +283,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                          } else if (col.id === 'interestAmount' || col.id === 'rate') {
                             cellValue = (cellValue as number).toFixed(2);
                          } else if (['party', 'bankName', 'companyName'].includes(col.id)) {
-                            cellValue = truncateText(cellValue as string, 12);
+                            cellValue = truncateText(cellValue as string, 10);
                          }
 
                          return (
@@ -310,16 +304,16 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                             </TableCell>
                          );
                     })}
-                    <TableCell className={cn("text-right px-1 sticky right-0 z-10", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}>
-                        <div className="flex items-center justify-end gap-0">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); router.push(`/calculator/${bill.id}`)}}>
-                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                    <TableCell className={cn("text-right px-1", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}>
+                        <div className="flex items-center justify-end gap-[2px]">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {e.stopPropagation(); router.push(`/calculator/${bill.id}`)}}>
+                                <Pencil className="h-3 w-3 text-muted-foreground" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); handleWhatsAppMessage(bill);}}>
-                                <Smartphone className="h-4 w-4 text-blue-500" />
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {e.stopPropagation(); handleWhatsAppMessage(bill);}}>
+                                <Smartphone className="h-3 w-3 text-blue-500" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); setBillToDelete(bill)}}>
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {e.stopPropagation(); setBillToDelete(bill)}}>
+                                <Trash2 className="h-3 w-3 text-red-500" />
                             </Button>
                         </div>
                     </TableCell>
@@ -351,3 +345,5 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     </>
   );
 }
+
+    
