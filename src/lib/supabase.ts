@@ -41,9 +41,15 @@ export const getSupabaseServerClient = () => {
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (supabaseUrl && supabaseKey) {
-        return createClient(supabaseUrl, supabaseKey);
+        return createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                // It's a good practice to persist session for server-side clients
+                // in case you use auth features, though not strictly needed for just data access.
+                persistSession: false
+            }
+        });
     }
     
-    console.error("Supabase server credentials not found in environment variables.");
+    console.warn("Supabase server credentials not found in environment variables. Uploads and server-side operations will fail.");
     return null;
 }
