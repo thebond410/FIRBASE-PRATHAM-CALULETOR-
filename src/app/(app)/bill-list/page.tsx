@@ -1,11 +1,12 @@
 
 "use client";
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getCalculatedBills } from '@/lib/data';
 import { BillsTable } from '@/components/bills/bills-table';
 import type { CalculatedBill } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export default function BillListPage() {
   const searchParams = useSearchParams();
@@ -13,18 +14,39 @@ export default function BillListPage() {
   const [bills, setBills] = useState<CalculatedBill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  useEffect(() => {
-    const fetchBills = async () => {
-      setIsLoading(true);
-      let fetchedBills = await getCalculatedBills();
-      if (partyFilter) {
-        fetchedBills = fetchedBills.filter(bill => bill.party === partyFilter);
-      }
-      setBills(fetchedBills);
-      setIsLoading(false);
+  const fetchBills = useCallback(async () => {
+    setIsLoading(true);
+    let fetchedBills = await getCalculatedBills();
+    if (partyFilter) {
+      fetchedBills = fetchedBills.filter(bill => bill.party === partyFilter);
     }
-    fetchBills();
+    setBills(fetchedBills);
+    setIsLoading(false);
   }, [partyFilter]);
+
+  useEffect(() => {
+    fetchBills();
+
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+        console.log("Supabase client not available, real-time updates disabled.");
+        return;
+    };
+
+    const channel = supabase.channel('realtime-bills-list')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' },
+        (payload) => {
+          console.log('Change received in bill list!', payload);
+          fetchBills();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+
+  }, [fetchBills]);
 
   if (isLoading) {
     return (
@@ -43,5 +65,3 @@ export default function BillListPage() {
     </div>
   );
 }
-
-    

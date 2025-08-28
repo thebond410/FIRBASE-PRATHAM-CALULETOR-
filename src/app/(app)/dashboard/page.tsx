@@ -17,11 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { billTableColumns, BillTableColumn } from '@/lib/types';
 import { format } from 'date-fns';
+import { getSupabaseClient } from '@/lib/supabase';
+import { calculateBillDetails } from '@/lib/utils';
 
 type Summary = {
   totalEntries: number;
@@ -35,7 +37,6 @@ type OverdueParty = {
   totalAmount: number;
 };
 
-// Define which columns are for import/export to exclude calculated fields
 const importExportColumns: BillTableColumn[] = billTableColumns.filter(
   (col) => !['totalDays', 'interestDays', 'interestAmount', 'interestRate'].includes(col.id)
 );
@@ -83,15 +84,37 @@ export default function DashboardPage() {
   const [isAlertOpen, setAlertOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    const fetchBills = async () => {
-      setIsLoading(true);
-      const fetchedBills = await getCalculatedBills();
-      setBills(fetchedBills);
-      setIsLoading(false);
-    };
-    fetchBills();
+  const fetchBills = useCallback(async () => {
+    setIsLoading(true);
+    const fetchedBills = await getCalculatedBills();
+    setBills(fetchedBills);
+    setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    fetchBills();
+    
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+        console.log("Supabase client not available, real-time updates disabled.");
+        return;
+    };
+
+    const channel = supabase.channel('realtime-bills')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bills' },
+        (payload) => {
+          console.log('Change received!', payload);
+          // Just refetch all data to keep it simple
+          fetchBills();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+
+  }, [fetchBills]);
 
   const summaryCards = [
     { title: "Total Entries", value: summary.totalEntries.toLocaleString(), icon: BarChart, gradient: "from-blue-500 to-indigo-500" },
@@ -106,7 +129,7 @@ export default function DashboardPage() {
   const handleClearData = async () => {
     try {
       await clearAllBills();
-      setBills([]);
+      // State will be updated by real-time sync
       toast({
         title: 'Data Cleared',
         description: 'All bill data has been permanently deleted.',
@@ -181,8 +204,7 @@ export default function DashboardPage() {
             const result = await importBillsFromCSV(text);
             if (result.success) {
                 toast({ title: "Import Successful", description: `${result.count} bills have been imported.`});
-                const fetchedBills = await getCalculatedBills();
-                setBills(fetchedBills); // Refresh the list
+                // Data will be updated via real-time sync
             } else {
                 toast({ title: "Import Failed", description: result.error, variant: "destructive"});
             }
@@ -296,5 +318,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
