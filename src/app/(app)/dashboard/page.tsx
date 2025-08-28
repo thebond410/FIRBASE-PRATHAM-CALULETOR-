@@ -18,12 +18,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { billTableColumns, BillTableColumn } from '@/lib/types';
 import { format } from 'date-fns';
 import { getSupabaseClient } from '@/lib/supabase';
+import { Skeleton } from '@/components/ui/skeleton';
+
 
 type Summary = {
   totalEntries: number;
@@ -44,6 +46,13 @@ const importExportColumns: BillTableColumn[] = billTableColumns.filter(
 
 
 function calculateSummaries(bills: CalculatedBill[]): { summary: Summary; overdueParties: OverdueParty[] } {
+  if (!bills || bills.length === 0) {
+    return {
+      summary: { totalEntries: 0, totalNetAmount: 0, overdueAmount: 0 },
+      overdueParties: [],
+    };
+  }
+
   const totalEntries = bills.length;
   const totalNetAmount = bills.reduce((sum, bill) => sum + bill.netAmount, 0);
   const overdueBills = bills.filter(bill => bill.status === 'overdue');
@@ -82,12 +91,13 @@ export default function DashboardPage() {
   const [bills, setBills] = useState<CalculatedBill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const { summary, overdueParties } = calculateSummaries(bills);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { summary, overdueParties } = useMemo(() => calculateSummaries(bills), [bills]);
+  
   const fetchBills = useCallback(async () => {
-    setIsLoading(true);
+    // No need to set is loading to true here, to avoid flashing on real-time updates
     const fetchedBills = await getCalculatedBills();
     setBills(fetchedBills);
     setIsLoading(false);
@@ -229,7 +239,20 @@ export default function DashboardPage() {
 
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return (
+      <div className="p-4 space-y-6">
+        <div className="grid grid-cols-4 gap-2">
+            {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+        </div>
+         <div className="space-y-2">
+            <Skeleton className="h-6 w-1/4" />
+            <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -256,7 +279,7 @@ export default function DashboardPage() {
         </Button>
       </section>
 
-      <section className="grid md:grid-cols-3 gap-4">
+      <section className="grid sm:grid-cols-3 gap-4">
         {summaryCards.map((card) => (
           <Card key={card.title} className="overflow-hidden border-0 shadow-lg">
             <div className={`bg-gradient-to-br ${card.gradient} p-2 md:p-4`}>
@@ -325,5 +348,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    

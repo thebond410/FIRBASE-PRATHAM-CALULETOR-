@@ -44,7 +44,6 @@ type ColumnConfig = {
 export function BillsTable({ data }: { data: CalculatedBill[] }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [bills, setBills] = React.useState(data);
   const [sortConfig, setSortConfig] = React.useState<SortConfig>({ key: 'billDate', order: 'desc' });
   const [billToDelete, setBillToDelete] = React.useState<CalculatedBill | null>(null);
   const [selectedBillId, setSelectedBillId] = React.useState<number | null>(null);
@@ -59,10 +58,6 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
       frozenColumns: [],
   });
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    setBills(data);
-  }, [data]);
 
   React.useEffect(() => {
     try {
@@ -149,7 +144,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     const result = await deleteBill(billToDelete.id);
     if (result.success) {
         toast({ title: "Bill Deleted", description: "The bill has been successfully deleted." });
-        setBills(bills.filter(b => b.id !== billToDelete.id));
+        // The real-time subscription will trigger a re-fetch, so no need to manually update state.
     } else {
         toast({ title: "Delete Failed", description: result.error, variant: "destructive" });
     }
@@ -158,8 +153,8 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
 
 
   const sortedData = React.useMemo(() => {
-    if (!sortConfig.key) return bills;
-    return [...bills].sort((a, b) => {
+    if (!sortConfig.key) return data;
+    return [...data].sort((a, b) => {
       const aValue = a[sortConfig.key!];
       const bValue = b[sortConfig.key!];
 
@@ -179,7 +174,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
       if (aValue > bValue) return sortConfig.order === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [bills, sortConfig]);
+  }, [data, sortConfig]);
 
   const visibleColumns = billTableColumns.filter(col => columnConfig.visibleColumns.includes(col.id));
 
@@ -211,13 +206,13 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
   }
 
   const getRowClass = (bill: CalculatedBill) => {
-    if (bill.interestPaid === 'Yes') {
+    if (bill.status === 'settled') {
       return 'bg-green-100 dark:bg-green-900/30';
     }
-    if (bill.recDate && bill.interestPaid === 'No') {
+    if (bill.status === 'paid-interest-pending') {
       return 'bg-blue-100 dark:bg-blue-900/30';
     }
-    if (bill.totalDays > bill.creditDays) {
+    if (bill.status === 'overdue') {
       return 'bg-red-100 dark:bg-red-900/30';
     }
     return 'bg-card';
@@ -301,7 +296,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 )}
                             >
                                {col.id === 'netAmount' || col.id === 'recAmount' ? '₹' : ''}
-                               {typeof cellValue === 'number' && !['totalDays', 'interestAmount', 'rate'].includes(col.id) ? cellValue.toLocaleString('en-IN') : cellValue}
+                               {typeof cellValue === 'number' && !['totalDays', 'interestDays', 'interestAmount', 'rate', 'creditDays'].includes(col.id) ? cellValue.toLocaleString('en-IN') : cellValue}
                                {col.id === 'interestAmount' && '₹'}
 
                             </TableCell>

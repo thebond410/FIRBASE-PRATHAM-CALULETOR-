@@ -29,7 +29,7 @@ export interface CalculatedBill extends Bill {
 }
 
 export interface BillTableColumn {
-    id: keyof Omit<CalculatedBill, 'id' | 'status' | 'created_at' | 'updated_at'>;
+    id: keyof Omit<CalculatedBill, 'id' | 'status' | 'created_at' | 'updated_at' | 'interestRate'>;
     label: string;
     shortLabel: string;
     className: string;
@@ -55,5 +55,3 @@ export const billTableColumns: BillTableColumn[] = [
     { id: 'companyName', label: 'Company Name', shortLabel: 'Company', className: 'bg-gradient-to-r from-cyan-600 to-cyan-500' },
     { id: 'mobile', label: 'Mobile', shortLabel: 'Mobile', className: 'bg-gradient-to-r from-emerald-600 to-emerald-500' },
 ];
-
-    
