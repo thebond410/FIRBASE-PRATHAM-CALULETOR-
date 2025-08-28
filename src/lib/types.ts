@@ -29,7 +29,7 @@ export interface CalculatedBill extends Bill {
 }
 
 export interface BillTableColumn {
-    id: keyof Omit<CalculatedBill, 'id' | 'status' | 'created_at' | 'updated_at' | 'interestRate'>;
+    id: keyof Omit<CalculatedBill, 'id' | 'status' | 'created_at' | 'updated_at'>;
     label: string;
     shortLabel: string;
     className: string;

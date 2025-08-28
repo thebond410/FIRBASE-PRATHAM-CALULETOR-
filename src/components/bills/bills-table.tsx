@@ -52,7 +52,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     pendingInterest: `!!	Jay Matadi  !!\nPending Interest…\n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount], Rec Dt: [Rec Date]\nTotal Days: [Total Days], Interest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nPay this bill’s pending interest and close full payment.\n\nFrom: [Company].`,
     paymentThanks: `!!	Jay Matadi  !!\n\nThanks For Payment \n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount],\nRec Dt: [Rec Date]\nTotal Days: [Total Days], \nInterest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nWe Proud Work with You...`
   });
-  const [fontSize, setFontSize] = React.useState(12);
+  const [fontSize, setFontSize] = React.useState(11);
   const [columnConfig, setColumnConfig] = React.useState<ColumnConfig>({
       visibleColumns: billTableColumns.map(c => c.id),
       frozenColumns: [],
@@ -113,18 +113,25 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
 
   const handleWhatsAppMessage = (bill: CalculatedBill) => {
     let template;
-    if (!bill.recDate) {
-      template = whatsappTemplates.noRecDate;
-    } else if (bill.interestPaid === 'No') {
-      template = whatsappTemplates.pendingInterest;
-    } else {
-      template = whatsappTemplates.paymentThanks;
+    switch (bill.status) {
+        case 'overdue':
+            template = whatsappTemplates.noRecDate;
+            break;
+        case 'paid-interest-pending':
+            template = whatsappTemplates.pendingInterest;
+            break;
+        case 'settled':
+            template = whatsappTemplates.paymentThanks;
+            break;
+        default: // pending
+            template = whatsappTemplates.noRecDate;
+            break;
     }
     
     const message = template
       .replace(/\[Party\]/g, bill.party)
       .replace(/\[Bill No\]/g, bill.billNo)
-      .replace(/\[Bill Date\]/g, bill.billDate)
+      .replace(/\[Bill Date\]/g, bill.billDate ? format(new Date(bill.billDate), 'dd/MM/yy') : '')
       .replace(/\[Netamount\]/g, bill.netAmount.toLocaleString('en-IN'))
       .replace(/\[Total Days\]/g, bill.totalDays.toString())
       .replace(/\[interest days\]/g, bill.interestDays.toString())
@@ -206,16 +213,12 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
   }
 
   const getRowClass = (bill: CalculatedBill) => {
-    if (bill.status === 'settled') {
-      return 'bg-green-100 dark:bg-green-900/30';
+    switch (bill.status) {
+      case 'settled': return 'bg-green-100 dark:bg-green-900/30'; // Green
+      case 'paid-interest-pending': return 'bg-blue-100 dark:bg-blue-900/30'; // Blue
+      case 'overdue': return 'bg-red-100 dark:bg-red-900/30'; // Red
+      default: return 'bg-card';
     }
-    if (bill.status === 'paid-interest-pending') {
-      return 'bg-blue-100 dark:bg-blue-900/30';
-    }
-    if (bill.status === 'overdue') {
-      return 'bg-red-100 dark:bg-red-900/30';
-    }
-    return 'bg-card';
   };
 
   const formatTotalDays = (days: number) => {
@@ -244,7 +247,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 key={col.id} 
                                 style={isFrozen ? frozenColumnStyles[col.id] : {}}
                                 className={cn(
-                                    "px-1 text-white h-auto py-0",
+                                    "px-1 text-white h-auto py-1",
                                     col.className,
                                     isFrozen && "sticky z-10 bg-gradient-to-r from-indigo-600 to-purple-600"
                                 )}
@@ -255,7 +258,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                             </TableHead>
                         );
                     })}
-                    <TableHead className="text-right px-1 text-white font-bold sticky right-0 z-20 bg-primary h-auto py-0">Actions</TableHead>
+                    <TableHead className="text-right px-1 text-white font-bold sticky right-0 z-20 bg-primary h-auto py-1 min-w-[120px]">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -265,9 +268,9 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                     <TableRow 
                         key={bill.id} 
                         onClick={() => handleRowClick(bill.id)}
-                        className={cn('font-bold cursor-pointer my-2', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}
+                        className={cn('h-4 font-bold cursor-pointer my-2', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}
                     >
-                    <TableCell className={cn("font-sans px-1 sticky left-0 z-10 w-[45px]", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}>
+                    <TableCell className={cn("font-sans px-1 sticky left-0 z-10 w-[45px] py-1", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}>
                         {index + 1}
                     </TableCell>
                     {visibleColumns.map(col => {
@@ -281,7 +284,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                          } else if (col.id === 'interestAmount' || col.id === 'rate') {
                             cellValue = (cellValue as number).toFixed(2);
                          } else if (['party', 'bankName', 'companyName'].includes(col.id)) {
-                            cellValue = truncateText(cellValue as string, 12);
+                            cellValue = truncateText(cellValue as string, 18);
                          }
 
                          return (
@@ -289,7 +292,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 key={col.id}
                                 style={isFrozen ? frozenColumnStyles[col.id] : {}}
                                 className={cn(
-                                    'font-bold px-1 whitespace-nowrap',
+                                    'font-bold px-1 whitespace-nowrap py-1',
                                     col.id === 'totalDays' ? 'text-red-600 dark:text-red-400' : 'text-primary/80',
                                     isFrozen && 'sticky z-10 text-purple-800 dark:text-purple-300',
                                     isFrozen && (selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)
@@ -308,10 +311,10 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 <Pencil className="h-4 w-4 text-muted-foreground" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); handleWhatsAppMessage(bill);}}>
-                                <Smartphone className="h-4 w-4 text-green-500" />
+                                <Smartphone className="h-4 w-4 text-blue-500" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); setBillToDelete(bill)}}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                         </div>
                     </TableCell>

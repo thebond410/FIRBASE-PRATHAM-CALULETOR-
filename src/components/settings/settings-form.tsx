@@ -57,7 +57,6 @@ CREATE TABLE bills (
     "chequeNumber" TEXT,
     "bankName" TEXT,
     "recAmount" NUMERIC,
-    "interestRate" NUMERIC,
     pes TEXT,
     meter TEXT,
     rate NUMERIC,
@@ -107,7 +106,7 @@ export function SettingsForm() {
       noRecDateTemplate: defaultTemplates.noRecDate,
       pendingInterestTemplate: defaultTemplates.pendingInterest,
       paymentThanksTemplate: defaultTemplates.paymentThanks,
-      billListFontSize: 12,
+      billListFontSize: 11,
       visibleColumns: defaultVisibleColumns,
       frozenColumns: [],
     },
@@ -182,7 +181,7 @@ export function SettingsForm() {
             form.setValue("noRecDateTemplate", data.no_rec_date_template || defaultTemplates.noRecDate);
             form.setValue("pendingInterestTemplate", data.pending_interest_template || defaultTemplates.pendingInterest);
             form.setValue("paymentThanksTemplate", data.payment_thanks_template || defaultTemplates.paymentThanks);
-            form.setValue("billListFontSize", data.bill_list_font_size || 12);
+            form.setValue("billListFontSize", data.bill_list_font_size || 11);
             form.setValue("visibleColumns", data.visible_columns || defaultVisibleColumns);
             form.setValue("frozenColumns", data.frozen_columns || []);
             onSubmit(form.getValues(), false); // Save to local storage after fetching

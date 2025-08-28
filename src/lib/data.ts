@@ -129,6 +129,8 @@ export async function clearAllBills(): Promise<{success: boolean, error?: string
     if (!supabase) return { success: false, error: "Supabase not configured." };
 
     try {
+        // Using `delete` with a filter that matches all rows (e.g., id > 0)
+        // is safer than a TRUNCATE operation, as it respects RLS policies.
         const { error } = await supabase.from('bills').delete().gt('id', 0);
         if (error) throw error;
         return { success: true };
@@ -137,5 +139,3 @@ export async function clearAllBills(): Promise<{success: boolean, error?: string
         return { success: false, error: err.message };
     }
 }
-
-    
