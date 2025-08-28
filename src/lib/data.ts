@@ -37,8 +37,8 @@ export async function getParties(): Promise<string[]> {
     }
 
     // Use a Set to get unique party names, then convert back to an array
-    const uniqueParties = [...new Set(data.map(item => item.party))];
-    return uniqueParties;
+    const uniqueParties = [...new Set(data.map(item => item.party))].filter(p => p);
+    return uniqueParties as string[];
 }
 
 export async function getUnpaidBillsByParty(party: string): Promise<Bill[]> {
@@ -170,12 +170,14 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
 
         const parsedDate = parseDate(billData.billDate);
         if (!parsedDate) {
-            return { success: false, error: `Invalid billDate format for row: ${row}. Expected dd/MM/yyyy.`}
+            console.warn(`Skipping row due to invalid billDate format: ${row}. Expected dd/MM/yyyy.`);
+            continue;
         }
         
         const parsedRecDate = billData.recDate ? parseDate(billData.recDate) : null;
         if (billData.recDate && !parsedRecDate) {
-             return { success: false, error: `Invalid recDate format for row: ${row}. Expected dd/MM/yyyy.`}
+             console.warn(`Skipping row due to invalid recDate format: ${row}. Expected dd/MM/yyyy.`);
+             continue;
         }
 
         billsToInsert.push({
