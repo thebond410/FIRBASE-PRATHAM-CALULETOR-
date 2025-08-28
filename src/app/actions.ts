@@ -120,7 +120,6 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
             netAmount: parseFloat(getValue('netAmount')) || 0,
             creditDays: parseInt(getValue('creditDays')) || 0,
             recAmount: parseFloat(getValue('recAmount')) || 0,
-            interestRate: 0, // This value is not in the specified columns, keeping default
             pes: getValue('pes') || '',
             meter: getValue('meter') || '',
             rate: parseFloat(getValue('rate')) || 0

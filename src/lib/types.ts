@@ -14,7 +14,6 @@ export interface Bill {
   chequeNumber: string;
   bankName: string;
   recAmount: number;
-  interestRate: number;
   pes: string;
   meter: string;
   rate: number;
@@ -55,7 +54,6 @@ export const billTableColumns: BillTableColumn[] = [
     { id: 'bankName', label: 'Bank Name', shortLabel: 'Bank', className: 'bg-gradient-to-r from-blue-gray-600 to-blue-gray-500' },
     { id: 'companyName', label: 'Company Name', shortLabel: 'Company', className: 'bg-gradient-to-r from-cyan-600 to-cyan-500' },
     { id: 'mobile', label: 'Mobile', shortLabel: 'Mobile', className: 'bg-gradient-to-r from-emerald-600 to-emerald-500' },
-    { id: 'interestRate', label: 'Interest Rate', shortLabel: 'Int. Rate', className: 'bg-gradient-to-r from-amber-600 to-amber-500' },
 ];
 
     

@@ -281,7 +281,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                             cellValue = formatDate(cellValue as string | null);
                          } else if (col.id === 'totalDays') {
                             cellValue = formatTotalDays(cellValue as number);
-                         } else if (col.id === 'interestAmount') {
+                         } else if (col.id === 'interestAmount' || col.id === 'rate') {
                             cellValue = (cellValue as number).toFixed(2);
                          } else if (['party', 'bankName', 'companyName'].includes(col.id)) {
                             cellValue = truncateText(cellValue as string, 12);
@@ -298,8 +298,8 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                     isFrozen && (selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)
                                 )}
                             >
-                               {col.id === 'netAmount' || col.id === 'recAmount' || col.id === 'rate' ? '₹' : ''}
-                               {typeof cellValue === 'number' && col.id !== 'totalDays' ? cellValue.toLocaleString('en-IN') : cellValue}
+                               {col.id === 'netAmount' || col.id === 'recAmount' ? '₹' : ''}
+                               {typeof cellValue === 'number' && !['totalDays', 'interestAmount', 'rate'].includes(col.id) ? cellValue.toLocaleString('en-IN') : cellValue}
                                {col.id === 'interestAmount' && '₹'}
 
                             </TableCell>
@@ -346,3 +346,4 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     </>
   );
 }
+
