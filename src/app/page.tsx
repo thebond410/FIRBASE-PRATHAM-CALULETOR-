@@ -44,7 +44,7 @@ export default function LoginPage() {
         <CardHeader className="text-center space-y-2">
           <BarChart2 className="w-12 h-12 mx-auto text-primary" />
           <CardTitle className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-            Interest Insight
+            PRATHAM CALCULATOR
           </CardTitle>
           <CardDescription className="text-sm">Enter your password to access your dashboard</CardDescription>
         </CardHeader>

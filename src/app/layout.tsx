@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/auth-context';
 
 export const metadata: Metadata = {
-  title: 'Interest Insight',
+  title: 'PRATHAM CALCULATOR',
   description: 'A comprehensive app for calculating interest on outstanding bills.',
   manifest: '/manifest.json',
 };

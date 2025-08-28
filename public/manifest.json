@@ -1,6 +1,6 @@
 {
-  "name": "Interest Insight",
-  "short_name": "InterestInsight",
+  "name": "PRATHAM CALCULATOR",
+  "short_name": "PrathamCalc",
   "description": "A comprehensive app for calculating interest on outstanding bills.",
   "start_url": "/",
   "display": "standalone",
