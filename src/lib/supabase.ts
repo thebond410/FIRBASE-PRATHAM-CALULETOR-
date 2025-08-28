@@ -45,5 +45,6 @@ export const getSupabaseServerClient = () => {
         });
     }
     
+    console.error("Supabase server client not configured. Check environment variables.");
     return null;
 }
