@@ -56,7 +56,7 @@ function parseExcel(buffer: ArrayBuffer): Record<string, any>[] {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     // This will produce an array of JSON objects, where keys are the header names.
-    return xlsx.utils.sheet_to_json(worksheet);
+    return xlsx.utils.sheet_to_json(worksheet, { raw: false, defval: null });
 }
 
 
@@ -97,7 +97,9 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         // Helper function to safely get values using the mapped keys
         const getValue = (key: string) => {
             const mappedKey = keyMap[key.toLowerCase().replace(/\s+/g, '')];
-            return mappedKey ? billData[mappedKey] : undefined;
+            const value = mappedKey ? billData[mappedKey] : undefined;
+            // Ensure empty strings are treated as null
+            return value === '' ? null : value;
         };
 
         const parsedDate = parseDate(getValue('billDate'));
@@ -121,12 +123,12 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
             chequeNumber: String(getValue('chequeNumber') || getValue('chqno') || ''),
             bankName: String(getValue('bankName') || ''),
             interestPaid: getValue('interestPaid') === 'Yes' ? 'Yes' : 'No',
-            netAmount: parseFloat(getValue('netAmount')) || 0,
-            creditDays: parseInt(getValue('creditDays')) || 0,
-            recAmount: parseFloat(getValue('recAmount')) || 0,
+            netAmount: parseFloat(String(getValue('netAmount'))) || 0,
+            creditDays: parseInt(String(getValue('creditDays'))) || 0,
+            recAmount: parseFloat(String(getValue('recAmount'))) || 0,
             pes: String(getValue('pes') || ''),
             meter: String(getValue('meter') || ''),
-            rate: parseFloat(getValue('rate')) || 0
+            rate: parseFloat(String(getValue('rate'))) || 0
         });
     }
 
