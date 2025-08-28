@@ -118,10 +118,16 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
   };
 
   const handleWhatsAppMessage = (bill: CalculatedBill) => {
-    let templateKey: keyof typeof whatsappTemplates = 'noRecDate';
-    if (bill.recDate) {
-        templateKey = bill.interestPaid === 'Yes' ? 'paymentThanks' : 'pendingInterest';
+    let templateKey: keyof typeof whatsappTemplates;
+    
+    if (!bill.recDate) {
+      templateKey = 'noRecDate';
+    } else if (bill.interestPaid === 'No') {
+      templateKey = 'pendingInterest';
+    } else {
+      templateKey = 'paymentThanks';
     }
+
     const template = whatsappTemplates[templateKey];
 
     const message = template

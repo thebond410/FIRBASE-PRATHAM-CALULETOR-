@@ -5,6 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { LayoutDashboard, ListOrdered, Calculator, Settings } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -21,26 +27,32 @@ export default function NavMenu({ onLinkClick }: NavMenuProps) {
   const pathname = usePathname();
 
   return (
-    <>
+    <TooltipProvider>
       {navItems.map((item) => {
         const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
         return (
-          <Link
-            key={item.label}
-            href={item.href}
-            onClick={onLinkClick}
-            className={cn(
-              'flex items-center gap-1 p-1 rounded-md transition-colors whitespace-nowrap',
-              isActive 
-                ? 'font-bold text-xs bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent' 
-                : 'text-muted-foreground hover:text-foreground font-semibold text-xs'
-            )}
-          >
-            <item.icon className="h-3 w-3" />
-            <span>{item.label}</span>
-          </Link>
+          <Tooltip key={item.label}>
+            <TooltipTrigger asChild>
+              <Link
+                href={item.href}
+                onClick={onLinkClick}
+                className={cn(
+                  'flex items-center gap-1 p-2 rounded-md transition-colors whitespace-nowrap',
+                  isActive 
+                    ? 'font-bold text-primary bg-primary/10' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span className="sr-only">{item.label}</span>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{item.label}</p>
+            </TooltipContent>
+          </Tooltip>
         );
       })}
-    </>
+    </TooltipProvider>
   );
 }

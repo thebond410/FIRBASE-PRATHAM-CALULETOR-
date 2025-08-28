@@ -210,7 +210,6 @@ export function SettingsForm() {
       };
       localStorage.setItem("whatsappTemplates", JSON.stringify(templates));
       localStorage.setItem("billListFontSize", values.billListFontSize.toString());
-      document.documentElement.style.setProperty('--bill-list-font-size', `${values.billListFontSize}px`);
 
       const columnConfig = {
         visibleColumns: values.visibleColumns,
@@ -281,12 +280,12 @@ export function SettingsForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <Card className="shadow-md">
+        <Card className="shadow-md border-0">
           <CardHeader>
             <div className="flex items-center gap-3">
                 <KeyRound className="h-6 w-6 text-primary"/>
                 <div>
-                    <CardTitle className="text-sm font-bold">Gemini API Configuration</CardTitle>
+                    <CardTitle className="text-lg font-bold">Gemini API Configuration</CardTitle>
                     <CardDescription>Enter your API key to enable the cheque scanning feature.</CardDescription>
                 </div>
             </div>
@@ -326,12 +325,12 @@ export function SettingsForm() {
           </CardContent>
         </Card>
         
-        <Card className="shadow-md">
+        <Card className="shadow-md border-0">
           <CardHeader>
             <div className="flex items-center gap-3">
                 <Type className="h-6 w-6 text-primary"/>
                 <div>
-                    <CardTitle className="text-sm font-bold">Appearance</CardTitle>
+                    <CardTitle className="text-lg font-bold">Appearance</CardTitle>
                     <CardDescription>Customize the look and feel of the application.</CardDescription>
                 </div>
             </div>
@@ -353,12 +352,12 @@ export function SettingsForm() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-md">
+        <Card className="shadow-md border-0">
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <Columns className="h-6 w-6 text-primary"/>
                     <div>
-                        <CardTitle className="text-sm font-bold">Column Visibility</CardTitle>
+                        <CardTitle className="text-lg font-bold">Column Visibility</CardTitle>
                         <CardDescription>Select which columns to display in the bill list.</CardDescription>
                     </div>
                 </div>
@@ -411,12 +410,12 @@ export function SettingsForm() {
             </CardContent>
         </Card>
 
-        <Card className="shadow-md">
+        <Card className="shadow-md border-0">
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <Pin className="h-6 w-6 text-primary"/>
                     <div>
-                        <CardTitle className="text-sm font-bold">Column Freezing</CardTitle>
+                        <CardTitle className="text-lg font-bold">Column Freezing</CardTitle>
                         <CardDescription>Select up to 3 columns to freeze on the left side of the table.</CardDescription>
                     </div>
                 </div>
@@ -472,12 +471,12 @@ export function SettingsForm() {
             </CardContent>
         </Card>
 
-        <Card className="shadow-md">
+        <Card className="shadow-md border-0">
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <Database className="h-6 w-6 text-primary"/>
                     <div>
-                        <CardTitle className="text-sm font-bold">Supabase Configuration</CardTitle>
+                        <CardTitle className="text-lg font-bold">Supabase Configuration</CardTitle>
                         <CardDescription>Enter your Supabase URL and Key to save data. Settings can be synced with the cloud.</CardDescription>
                     </div>
                 </div>
@@ -550,12 +549,12 @@ export function SettingsForm() {
              </CardFooter>
         </Card>
 
-        <Card className="shadow-md">
+        <Card className="shadow-md border-0">
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <MessageSquare className="h-6 w-6 text-primary"/>
                     <div>
-                        <CardTitle className="text-sm font-bold">WhatsApp Templates</CardTitle>
+                        <CardTitle className="text-lg font-bold">WhatsApp Templates</CardTitle>
                         <CardDescription>Edit the templates for WhatsApp messages. Available placeholders: <br/><code className="text-xs font-mono p-1 bg-muted rounded-sm">{placeholders}</code></CardDescription>
                     </div>
                 </div>
