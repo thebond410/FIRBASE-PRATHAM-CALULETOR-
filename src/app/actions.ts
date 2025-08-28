@@ -86,26 +86,21 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
     const billsToInsert: Omit<Bill, 'id' | 'created_at' | 'updated_at'>[] = [];
 
     for (const billData of jsonData) {
-        // Adjust keys to handle potential inconsistencies from Excel parsing (e.g. "Bill Date" vs "billDate")
-        const normalizedData = Object.keys(billData).reduce((acc, key) => {
-            const normalizedKey = key.replace(/\s+/g, '').toLowerCase();
-            const matchingKey = Object.keys(billData).find(k => k.replace(/\s+/g, '').toLowerCase() === normalizedKey);
-            if (matchingKey) {
-                acc[normalizedKey] = billData[matchingKey];
-            }
-            return acc;
-        }, {} as any);
+        // A mapping of expected keys (lowercase, no spaces) to the keys found in the file
+        const keyMap: { [key: string]: string } = {};
+        for (const key in billData) {
+            keyMap[key.replace(/\s+/g, '').toLowerCase()] = key;
+        }
 
-        const billDateKey = Object.keys(normalizedData).find(k => k.toLowerCase().includes('billdate'));
-        const recDateKey = Object.keys(normalizedData).find(k => k.toLowerCase().includes('recdate'));
+        const getValue = (key: string) => billData[keyMap[key.toLowerCase()]];
 
-        const parsedDate = parseDate(billDateKey ? normalizedData[billDateKey] : null);
+        const parsedDate = parseDate(getValue('billDate'));
         if (!parsedDate) {
             console.warn(`Skipping row due to invalid billDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
             continue;
         }
         
-        const recDateValue = recDateKey ? normalizedData[recDateKey] : null;
+        const recDateValue = getValue('recDate');
         const parsedRecDate = recDateValue ? parseDate(recDateValue) : null;
         if (recDateValue && !parsedRecDate) {
              console.warn(`Skipping row due to invalid recDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
@@ -115,20 +110,20 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         billsToInsert.push({
             billDate: format(parsedDate, 'yyyy-MM-dd'),
             recDate: parsedRecDate ? format(parsedRecDate, 'yyyy-MM-dd') : null,
-            billNo: normalizedData.billno || '',
-            party: normalizedData.party || '',
-            companyName: normalizedData.companyname || '',
-            mobile: normalizedData.mobile || '',
-            chequeNumber: normalizedData.chequenumber || '',
-            bankName: normalizedData.bankname || '',
-            interestPaid: normalizedData.interestpaid === 'Yes' ? 'Yes' : 'No',
-            netAmount: parseFloat(normalizedData.netamount) || 0,
-            creditDays: parseInt(normalizedData.creditdays) || 0,
-            recAmount: parseFloat(normalizedData.recamount) || 0,
-            interestRate: 0,
-            pes: normalizedData.pes || '',
-            meter: normalizedData.meter || '',
-            rate: parseFloat(normalizedData.rate) || 0
+            billNo: getValue('billNo') || '',
+            party: getValue('party') || '',
+            companyName: getValue('companyName') || '',
+            mobile: getValue('mobile') || '',
+            chequeNumber: getValue('chequeNumber') || '',
+            bankName: getValue('bankName') || '',
+            interestPaid: getValue('interestPaid') === 'Yes' ? 'Yes' : 'No',
+            netAmount: parseFloat(getValue('netAmount')) || 0,
+            creditDays: parseInt(getValue('creditDays')) || 0,
+            recAmount: parseFloat(getValue('recAmount')) || 0,
+            interestRate: 0, // This value is not in the specified columns, keeping default
+            pes: getValue('pes') || '',
+            meter: getValue('meter') || '',
+            rate: parseFloat(getValue('rate')) || 0
         });
     }
 
