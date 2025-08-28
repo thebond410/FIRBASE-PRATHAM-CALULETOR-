@@ -133,46 +133,12 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
     if(billsFromFile.length === 0) {
         return { success: false, error: "No valid bill data found to import." };
     }
-    
-    // --- Duplicate Check Logic ---
-    const { data: existingBills, error: fetchError } = await supabase
-        .from('bills')
-        .select('companyName, billNo');
-
-    if (fetchError) {
-        console.error("Error fetching existing bills for duplicate check:", fetchError);
-        return { success: false, error: `Could not check for duplicates: ${fetchError.message}` };
-    }
-
-    const existingBillSet = new Set(
-        existingBills.map(b => `${b.companyName?.trim()}|${b.billNo?.trim()}`)
-    );
-
-    const billsToInsert: typeof billsFromFile = [];
-    let skippedCount = 0;
-    
-    for (const bill of billsFromFile) {
-        const uniqueKey = `${bill.companyName.trim()}|${bill.billNo.trim()}`;
-        if (existingBillSet.has(uniqueKey)) {
-            skippedCount++;
-        } else {
-            billsToInsert.push(bill);
-            // Also add to the set to prevent duplicates from within the same file
-            existingBillSet.add(uniqueKey);
-        }
-    }
-    // --- End Duplicate Check ---
-    
-
-    if(billsToInsert.length === 0) {
-        return { success: true, count: 0, skipped: skippedCount, error: skippedCount > 0 ? `${skippedCount} duplicate bill(s) were skipped.` : "No new bills to import." };
-    }
 
     try {
         // Using a single insert operation for batch processing is much faster.
-        const { error } = await supabase.from('bills').insert(billsToInsert);
+        const { error } = await supabase.from('bills').insert(billsFromFile);
         if (error) throw error;
-        return { success: true, count: billsToInsert.length, skipped: skippedCount };
+        return { success: true, count: billsFromFile.length, skipped: 0 };
     } catch (err: any) {
         console.error("Error importing bills:", err);
         return { success: false, error: `Database insert failed: ${err.message}` };
