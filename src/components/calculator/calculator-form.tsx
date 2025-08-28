@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, parse, format } from "date-fns";
 import { Camera, Loader2, Save } from "lucide-react";
 import { scanCheque } from "@/app/actions";
+import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   billDate: z.string().min(1, "Bill date is required"),
