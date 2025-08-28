@@ -238,40 +238,31 @@ export function SettingsForm() {
             </CardHeader>
             <CardContent>
                 <FormField
-                    control={form.control}
-                    name="visibleColumns"
-                    render={() => (
-                        <FormItem>
-                            <div className="grid grid-cols-3 gap-2">
-                            {billTableColumns.map((col) => (
-                                <Controller
-                                    key={col.id}
-                                    control={form.control}
-                                    name="visibleColumns"
-                                    render={({ field }) => {
-                                        return (
-                                            <FormItem className="flex items-center gap-2 space-y-0">
-                                                <FormControl>
-                                                    <Checkbox
-                                                        checked={field.value?.includes(col.id)}
-                                                        onCheckedChange={(checked) => {
-                                                            const newValue = checked
-                                                                ? [...field.value, col.id]
-                                                                : field.value?.filter((value) => value !== col.id);
-                                                            field.onChange(newValue);
-                                                        }}
-                                                    />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">{col.label}</FormLabel>
-                                            </FormItem>
-                                        )
-                                    }}
-                                />
-                            ))}
-                            </div>
-                            <FormMessage />
-                        </FormItem>
-                    )}
+                  control={form.control}
+                  name="visibleColumns"
+                  render={({ field }) => (
+                      <FormItem>
+                          <div className="grid grid-cols-3 gap-2">
+                          {billTableColumns.map((col) => (
+                              <FormItem key={col.id} className="flex items-center gap-2 space-y-0">
+                                  <FormControl>
+                                      <Checkbox
+                                          checked={field.value?.includes(col.id)}
+                                          onCheckedChange={(checked) => {
+                                              const newValue = checked
+                                                  ? [...field.value, col.id]
+                                                  : field.value?.filter((value) => value !== col.id);
+                                              field.onChange(newValue);
+                                          }}
+                                      />
+                                  </FormControl>
+                                  <FormLabel className="font-normal">{col.label}</FormLabel>
+                              </FormItem>
+                          ))}
+                          </div>
+                          <FormMessage />
+                      </FormItem>
+                  )}
                 />
             </CardContent>
         </Card>
@@ -290,34 +281,25 @@ export function SettingsForm() {
                  <FormField
                     control={form.control}
                     name="frozenColumns"
-                    render={() => (
+                    render={({ field }) => (
                         <FormItem>
                              <div className="grid grid-cols-3 gap-2">
                                 {billTableColumns.filter(c => watchedVisibleColumns.includes(c.id)).map((col) => (
-                                     <Controller
-                                        key={col.id}
-                                        control={form.control}
-                                        name="frozenColumns"
-                                        render={({ field }) => {
-                                        return (
-                                            <FormItem className="flex items-center gap-2 space-y-0">
-                                                <FormControl>
-                                                    <Checkbox
-                                                        checked={field.value?.includes(col.id)}
-                                                        disabled={!field.value?.includes(col.id) && field.value?.length >= 3}
-                                                        onCheckedChange={(checked) => {
-                                                            const newValue = checked
-                                                                ? [...field.value, col.id]
-                                                                : field.value?.filter((value) => value !== col.id);
-                                                            field.onChange(newValue);
-                                                        }}
-                                                    />
-                                                </FormControl>
-                                                <FormLabel className="font-normal">{col.label}</FormLabel>
-                                            </FormItem>
-                                            )
-                                        }}
-                                     />
+                                     <FormItem key={col.id} className="flex items-center gap-2 space-y-0">
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value?.includes(col.id)}
+                                                disabled={!field.value?.includes(col.id) && field.value?.length >= 3}
+                                                onCheckedChange={(checked) => {
+                                                    const newValue = checked
+                                                        ? [...field.value, col.id]
+                                                        : field.value?.filter((value) => value !== col.id);
+                                                    field.onChange(newValue);
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">{col.label}</FormLabel>
+                                    </FormItem>
                                 ))}
                             </div>
                             <FormMessage />
