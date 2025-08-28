@@ -60,7 +60,7 @@ function parseExcel(buffer: ArrayBuffer): Record<string, any>[] {
 }
 
 
-export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Promise<{success: boolean, count?: number, error?: string}> {
+export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Promise<{success: boolean, count?: number, error?: string, skipped?: number}> {
     const supabase = getSupabaseServerClient();
     if (!supabase) return { success: false, error: "Supabase not configured. Please check your server environment variables." };
 
@@ -85,7 +85,7 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         return { success: false, error: "No data found in the file."};
     }
     
-    const billsToInsert: Omit<Bill, 'id' | 'created_at' | 'updated_at'>[] = [];
+    const billsFromFile: Omit<Bill, 'id' | 'created_at' | 'updated_at'>[] = [];
 
     for (const billData of jsonData) {
         // Create a mapping of lowercase, space-removed header names to their original keys
@@ -109,39 +109,71 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         const recDateValue = getValue('recDate');
         const parsedRecDate = (recDateValue !== null && recDateValue !== undefined && String(recDateValue).trim() !== '') ? parseDate(String(recDateValue)) : null;
 
-        if (recDateValue && !parsedRecDate) {
+        if (recDateValue && String(recDateValue).trim() !== '' && !parsedRecDate) {
              console.warn(`Skipping row due to invalid recDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
              continue;
         }
 
-        billsToInsert.push({
+        billsFromFile.push({
             billDate: format(parsedDate, 'yyyy-MM-dd'),
             recDate: parsedRecDate ? format(parsedRecDate, 'yyyy-MM-dd') : null,
-            billNo: getValue('billNo') || '',
-            party: getValue('party') || '',
-            companyName: getValue('companyName') || '',
-            mobile: getValue('mobile') || '',
-            chequeNumber: getValue('chequeNumber') || '',
-            bankName: getValue('bankName') || '',
+            billNo: String(getValue('billNo') || ''),
+            party: String(getValue('party') || ''),
+            companyName: String(getValue('companyName') || ''),
+            mobile: String(getValue('mobile') || ''),
+            chequeNumber: String(getValue('chequeNumber') || ''),
+            bankName: String(getValue('bankName') || ''),
             interestPaid: getValue('interestPaid') === 'Yes' ? 'Yes' : 'No',
             netAmount: parseFloat(getValue('netAmount')) || 0,
             creditDays: parseInt(getValue('creditDays')) || 0,
             recAmount: parseFloat(getValue('recAmount')) || 0,
-            pes: getValue('pes') || '',
-            meter: getValue('meter') || '',
+            pes: String(getValue('pes') || ''),
+            meter: String(getValue('meter') || ''),
             rate: parseFloat(getValue('rate')) || 0
         });
     }
 
-    if(billsToInsert.length === 0) {
+    if(billsFromFile.length === 0) {
         return { success: false, error: "No valid bill data found to import." };
+    }
+    
+    // --- Duplicate Check Logic ---
+    const { data: existingBills, error: fetchError } = await supabase
+        .from('bills')
+        .select('companyName, billNo');
+
+    if (fetchError) {
+        console.error("Error fetching existing bills for duplicate check:", fetchError);
+        return { success: false, error: `Could not check for duplicates: ${fetchError.message}` };
+    }
+
+    const existingBillSet = new Set(
+        existingBills.map(b => `${b.companyName?.trim()}|${b.billNo?.trim()}`)
+    );
+
+    const billsToInsert: typeof billsFromFile = [];
+    let skippedCount = 0;
+    
+    for (const bill of billsFromFile) {
+        const uniqueKey = `${bill.companyName.trim()}|${bill.billNo.trim()}`;
+        if (existingBillSet.has(uniqueKey)) {
+            skippedCount++;
+        } else {
+            billsToInsert.push(bill);
+        }
+    }
+    // --- End Duplicate Check ---
+    
+
+    if(billsToInsert.length === 0) {
+        return { success: true, count: 0, skipped: skippedCount, error: skippedCount > 0 ? `${skippedCount} duplicate bill(s) were skipped.` : "No new bills to import." };
     }
 
     try {
         // Using a single insert operation for batch processing is much faster.
         const { error } = await supabase.from('bills').insert(billsToInsert);
         if (error) throw error;
-        return { success: true, count: billsToInsert.length };
+        return { success: true, count: billsToInsert.length, skipped: skippedCount };
     } catch (err: any) {
         console.error("Error importing bills:", err);
         return { success: false, error: `Database insert failed: ${err.message}` };

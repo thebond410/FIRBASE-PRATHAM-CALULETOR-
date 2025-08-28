@@ -67,7 +67,13 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
         }
         const storedTemplates = localStorage.getItem('whatsappTemplates');
         if (storedTemplates) {
-            setWhatsappTemplates(JSON.parse(storedTemplates));
+            const parsedTemplates = JSON.parse(storedTemplates);
+            // Ensure all templates are present, falling back to defaults if any are missing
+            setWhatsappTemplates({
+                noRecDate: parsedTemplates.noRecDate || `Outstanding Bill\n\nDear [Party],\nMy Bill No. [Bill No], Dt: [Bill Date],\nRs. [Netamount], Total Days: [Total Days].\nInterest days.[interest days], \nInt. Rs.[Interest amt].\n\nFrom: [Company]\n\nDear Sir, this bill is overdue. Please make payment.`,
+                pendingInterest: parsedTemplates.pendingInterest || `!!	Jay Matadi  !!\nPending Interest…\n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount], Rec Dt: [Rec Date]\nTotal Days: [Total Days], Interest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nPay this bill’s pending interest and close full payment.\n\nFrom: [Company].`,
+                paymentThanks: parsedTemplates.paymentThanks || `!!	Jay Matadi  !!\n\nThanks For Payment \n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount],\nRec Dt: [Rec Date]\nTotal Days: [Total Days], \nInterest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nWe Proud Work with You...`
+            });
         }
         const storedFontSize = localStorage.getItem("billListFontSize");
         if (storedFontSize) {
@@ -113,19 +119,15 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
 
   const handleWhatsAppMessage = (bill: CalculatedBill) => {
     let template;
-    switch (bill.status) {
-        case 'overdue':
-            template = whatsappTemplates.noRecDate;
-            break;
-        case 'paid-interest-pending':
-            template = whatsappTemplates.pendingInterest;
-            break;
-        case 'settled':
-            template = whatsappTemplates.paymentThanks;
-            break;
-        default: // pending
-            template = whatsappTemplates.noRecDate;
-            break;
+    // Condition 1: recDate exists and interest is paid
+    if (bill.recDate && bill.interestPaid === 'Yes') {
+        template = whatsappTemplates.paymentThanks;
+    // Condition 2: recDate exists but interest is NOT paid
+    } else if (bill.recDate && bill.interestPaid === 'No') {
+        template = whatsappTemplates.pendingInterest;
+    // Condition 3: recDate does not exist
+    } else {
+        template = whatsappTemplates.noRecDate;
     }
     
     const message = template
@@ -172,6 +174,8 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
       if (sortConfig.key === 'billDate' || sortConfig.key === 'recDate') {
         const dateA = new Date(aValue as string).getTime();
         const dateB = new Date(bValue as string).getTime();
+        if (isNaN(dateA)) return 1;
+        if (isNaN(dateB)) return -1;
         if (dateA < dateB) return sortConfig.order === 'asc' ? -1 : 1;
         if (dateA > dateB) return sortConfig.order === 'asc' ? 1 : -1;
         return 0;
@@ -269,6 +273,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                         key={bill.id} 
                         onClick={() => handleRowClick(bill.id)}
                         className={cn('h-4 font-bold cursor-pointer my-2', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}
+                        style={{ height: '4px', padding: '4px' }}
                     >
                     <TableCell className={cn("font-sans px-1 sticky left-0 z-10 w-[45px] py-1", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}>
                         {index + 1}
@@ -284,7 +289,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                          } else if (col.id === 'interestAmount' || col.id === 'rate') {
                             cellValue = (cellValue as number).toFixed(2);
                          } else if (['party', 'bankName', 'companyName'].includes(col.id)) {
-                            cellValue = truncateText(cellValue as string, 18);
+                            cellValue = truncateText(cellValue as string, 12);
                          }
 
                          return (

@@ -39,10 +39,8 @@ type OverdueParty = {
   totalAmount: number;
 };
 
-// Define which columns are for import/export. Exclude calculated fields.
-const importExportColumns: BillTableColumn[] = billTableColumns.filter(
-  (col) => !['totalDays', 'interestDays', 'interestAmount'].includes(col.id)
-);
+// Define which columns are for import/export. 
+const importExportColumns: BillTableColumn[] = billTableColumns;
 
 
 function calculateSummaries(bills: CalculatedBill[]): { summary: Summary; overdueParties: OverdueParty[] } {
@@ -183,6 +181,9 @@ export default function DashboardPage() {
              if (value instanceof Date) {
                 return format(value, 'dd/MM/yyyy');
             }
+             if (col.id === 'billDate' || col.id === 'recDate') {
+                return value ? format(new Date(value as string), 'dd/MM/yyyy') : '';
+             }
             if (typeof value === 'string' && value.includes(',')) {
                 return `"${value}"`;
             }
@@ -218,7 +219,11 @@ export default function DashboardPage() {
         try {
             const result = await importBills(arrayBuffer, file.type);
             if (result.success) {
-                toast({ title: "Import Successful", description: `${result.count} bills have been imported.`});
+                let description = `${result.count} bill(s) have been imported.`;
+                if (result.skipped && result.skipped > 0) {
+                    description += ` ${result.skipped} duplicate bill(s) were skipped.`;
+                }
+                toast({ title: "Import Successful", description });
                 // Data will be updated via real-time sync
             } else {
                 toast({ title: "Import Failed", description: result.error, variant: "destructive"});
