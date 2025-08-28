@@ -249,7 +249,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-4 gap-2">
             {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4">
             {Array.from({length: 3}).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
         </div>
          <div className="space-y-2">
@@ -284,7 +284,7 @@ export default function DashboardPage() {
         </Button>
       </section>
 
-      <section className="grid sm:grid-cols-3 gap-4">
+      <section className="grid grid-cols-3 gap-4">
         {summaryCards.map((card) => (
           <Card key={card.title} className="overflow-hidden border-0 shadow-lg">
             <div className={`bg-gradient-to-br ${card.gradient} p-2 md:p-4`}>
@@ -303,7 +303,7 @@ export default function DashboardPage() {
       <section className="space-y-2">
         <h2 className="text-sm font-bold tracking-tight">Overdue Parties</h2>
         {overdueParties.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-4">
             {overdueParties.map((party, index) => (
               <Card key={party.party} onClick={() => handlePartyClick(party.party)} className={cn("shadow-md border-0 bg-gradient-to-tr border-l-4 cursor-pointer", partyCardColors[index % partyCardColors.length])}>
                 <CardHeader className="p-4">
