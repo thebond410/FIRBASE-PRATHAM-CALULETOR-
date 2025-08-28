@@ -107,12 +107,9 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         }
         
         const recDateValue = getValue('recDate');
-        const parsedRecDate = (recDateValue !== null && recDateValue !== undefined && String(recDateValue).trim() !== '') ? parseDate(String(recDateValue)) : null;
+        // Parse recDate. If it's empty, null, or invalid, it will result in null.
+        const parsedRecDate = parseDate(String(recDateValue));
 
-        if (recDateValue && String(recDateValue).trim() !== '' && !parsedRecDate) {
-             console.warn(`Skipping row due to invalid recDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
-             continue;
-        }
 
         billsFromFile.push({
             billDate: format(parsedDate, 'yyyy-MM-dd'),
@@ -160,6 +157,8 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
             skippedCount++;
         } else {
             billsToInsert.push(bill);
+            // Also add to the set to prevent duplicates from within the same file
+            existingBillSet.add(uniqueKey);
         }
     }
     // --- End Duplicate Check ---
