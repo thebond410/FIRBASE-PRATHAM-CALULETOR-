@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -44,7 +45,7 @@ const sqlScripts = {
     bills: `
 CREATE TABLE bills (
     id SERIAL PRIMARY KEY,
-    "billDate" DATE NOT NULL,
+    "billDate" DATE,
     "billNo" TEXT,
     party TEXT,
     "netAmount" NUMERIC,
@@ -64,7 +65,8 @@ CREATE TABLE bills (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Note: Column names are quoted to preserve casing, which is good practice for Supabase.
+-- Note: Column names are quoted to preserve casing.
+-- The 'created_at' and 'updated_at' columns are handled automatically by the database.
 `.trim(),
     settings: `
 CREATE TABLE settings (
@@ -80,11 +82,8 @@ CREATE TABLE settings (
 );
 
 -- RLS (Row Level Security) should be enabled for this table.
--- For a single-user app, you could use a policy like:
--- CREATE POLICY "Allow authenticated users" ON settings FOR ALL
--- USING (auth.role() = 'authenticated');
---
 -- For this simple app, we will use a single row with id=1.
+-- Make sure to insert this single row after creating the table.
 INSERT INTO settings (id) values (1);
 `.trim()
 }

@@ -19,7 +19,6 @@ export async function getCalculatedBills(): Promise<CalculatedBill[]> {
 
   if (error) {
       console.error("Error fetching bills from Supabase:", error);
-      // You might want to throw the error or handle it differently
       return [];
   }
 
@@ -37,7 +36,6 @@ export async function getParties(): Promise<string[]> {
         return [];
     }
 
-    // Use a Set to get unique party names, then convert back to an array
     const uniqueParties = [...new Set(data.map(item => item.party))].filter(p => p);
     return uniqueParties as string[];
 }
@@ -46,7 +44,6 @@ export async function getUnpaidBillsByParty(party: string): Promise<Bill[]> {
     const supabase = getSupabaseServerClient();
     if (!supabase) return [];
 
-    // Fetches bills that are not settled (i.e., payment received but interest not paid, or no payment received at all)
     const { data, error } = await supabase
         .from('bills')
         .select('*')
@@ -83,27 +80,26 @@ export async function saveBill(bill: Omit<Bill, 'created_at' | 'updated_at'> & {
   const supabase = getSupabaseServerClient();
   if (!supabase) return { success: false, error: "Supabase not configured." };
 
+  const { id, ...billData } = bill;
+
   const billToSave = {
-    ...bill,
+    ...billData,
     billDate: bill.billDate ? format(parseDate(bill.billDate)!, 'yyyy-MM-dd') : null,
     recDate: bill.recDate ? format(parseDate(bill.recDate)!, 'yyyy-MM-dd') : null,
-  }
+  };
 
   try {
     let error;
-    if (bill.id) {
-        // Update existing bill
+    if (id) {
         const { error: updateError } = await supabase
             .from('bills')
             .update({ ...billToSave, updated_at: new Date().toISOString() })
-            .eq('id', bill.id);
+            .eq('id', id);
         error = updateError;
     } else {
-        // Create new bill
-        const { id, ...billWithoutId } = billToSave;
         const { error: insertError } = await supabase
             .from('bills')
-            .insert(billWithoutId);
+            .insert(billToSave);
         error = insertError;
     }
 
@@ -135,7 +131,6 @@ export async function clearAllBills(): Promise<{success: boolean, error?: string
     if (!supabase) return { success: false, error: "Supabase not configured." };
 
     try {
-        // This deletes all rows. Use with caution.
         const { error } = await supabase.from('bills').delete().gt('id', 0);
         if (error) throw error;
         return { success: true };
@@ -160,7 +155,6 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
     const billsToInsert: Omit<Bill, 'id'>[] = [];
 
     for (const row of rows) {
-        // More robust CSV parsing to handle commas inside quoted fields
         const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
         if(values.length === 0) continue;
         
