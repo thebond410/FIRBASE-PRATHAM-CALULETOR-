@@ -2,7 +2,8 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { getCalculatedBills, clearAllBills, importBillsFromCSV } from '@/lib/data';
+import { clearAllBills, getCalculatedBills } from '@/lib/data';
+import { importBillsFromCSV } from '@/app/actions';
 import type { CalculatedBill } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,6 @@ import { useToast } from '@/hooks/use-toast';
 import { billTableColumns, BillTableColumn } from '@/lib/types';
 import { format } from 'date-fns';
 import { getSupabaseClient } from '@/lib/supabase';
-import { calculateBillDetails } from '@/lib/utils';
 
 type Summary = {
   totalEntries: number;
@@ -319,3 +319,4 @@ export default function DashboardPage() {
   );
 }
 
+    
