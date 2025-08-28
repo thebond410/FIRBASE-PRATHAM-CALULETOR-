@@ -321,11 +321,11 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 text-sm p-4 pt-0">
                   <div>
-                    <p className="text-muted-foreground text-xs">Overdue Bills</p>
+                    <p className="text-muted-foreground text-xs">Bills</p>
                     <p className="font-bold text-md">{party.billCount}</p>
                   </div>
                   <div>
-                    <p className="text-muted-foreground text-xs">Total Amount</p>
+                    <p className="text-muted-foreground text-xs">Rs.</p>
                     <p className="font-bold text-[11px]">₹{party.totalAmount.toLocaleString('en-IN')}</p>
                   </div>
                 </CardContent>
