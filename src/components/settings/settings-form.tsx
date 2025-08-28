@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, XCircle, Database, FileText, MessageSquare, Type, Columns, Pin } from "lucide-react";
+import { KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, XCircle, Database, FileText, MessageSquare, Type, Columns, Pin, Copy } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { billTableColumns, BillTableColumn } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -39,11 +39,39 @@ const defaultTemplates = {
 
 const placeholders = "[Party], [Bill No], [Bill Date], [Netamount], [Total Days], [interest days], [Interest amt], [Company], [Recamount], [Rec Date], [Interest Days], [Interest Amount]";
 
+const sqlScript = `
+CREATE TABLE bills (
+    id SERIAL PRIMARY KEY,
+    "billDate" DATE NOT NULL,
+    "billNo" TEXT,
+    party TEXT,
+    "netAmount" NUMERIC,
+    "creditDays" INTEGER,
+    "recDate" DATE,
+    "interestPaid" TEXT,
+    mobile TEXT,
+    "companyName" TEXT,
+    "chequeNumber" TEXT,
+    "bankName" TEXT,
+    "recAmount" NUMERIC,
+    "interestRate" NUMERIC,
+    pes TEXT,
+    meter TEXT,
+    rate NUMERIC,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Note: Column names are quoted to preserve casing, which is good practice for Supabase.
+`.trim();
+
+
 export function SettingsForm() {
   const { toast } = useToast();
   const [showApiKey, setShowApiKey] = useState(false);
   const [showSupabaseKey, setShowSupabaseKey] = useState(false);
   const [apiStatus, setApiStatus] = useState<ApiStatus>("unconfigured");
+  const [showSql, setShowSql] = useState(false);
   
   const defaultVisibleColumns = useMemo(() => billTableColumns.map(c => c.id), []);
 
@@ -143,6 +171,11 @@ export function SettingsForm() {
     }
   }
 
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(sqlScript);
+    toast({ title: "Copied!", description: "SQL script copied to clipboard." });
+  };
+
   const statusInfo = {
     success: { icon: CheckCircle2, text: "API Key is configured.", color: "text-green-500" },
     failed: { icon: XCircle, text: "Failed to save API Key.", color: "text-red-500" },
@@ -237,48 +270,36 @@ export function SettingsForm() {
                 </div>
             </CardHeader>
             <CardContent>
-                <FormField
+                <Controller
                   control={form.control}
                   name="visibleColumns"
-                  render={() => (
-                    <FormItem>
-                      <div className="grid grid-cols-3 gap-2">
+                  render={({ field }) => (
+                    <div className="grid grid-cols-3 gap-2">
                         {billTableColumns.map((item) => (
-                          <FormField
-                            key={item.id}
-                            control={form.control}
-                            name="visibleColumns"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={item.id}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
+                            <FormItem
+                                key={item.id}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                            >
+                                <FormControl>
                                     <Checkbox
-                                      checked={field.value?.includes(item.id)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...field.value, item.id])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== item.id
-                                              )
-                                            )
-                                      }}
+                                        checked={field.value?.includes(item.id)}
+                                        onCheckedChange={(checked) => {
+                                            return checked
+                                            ? field.onChange([...field.value, item.id])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                    (value) => value !== item.id
+                                                )
+                                                )
+                                        }}
                                     />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
+                                </FormControl>
+                                <FormLabel className="font-normal">
                                     {item.label}
-                                  </FormLabel>
-                                </FormItem>
-                              )
-                            }}
-                          />
+                                </FormLabel>
+                            </FormItem>
                         ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
+                    </div>
                   )}
                 />
             </CardContent>
@@ -295,51 +316,39 @@ export function SettingsForm() {
                 </div>
             </CardHeader>
             <CardContent>
-                 <FormField
+                <Controller
                     control={form.control}
                     name="frozenColumns"
-                    render={() => (
-                      <FormItem>
+                    render={({ field }) => (
                         <div className="grid grid-cols-3 gap-2">
                           {billTableColumns
                             .filter(c => watchedVisibleColumns.includes(c.id))
                             .map((item) => (
-                              <FormField
-                                key={item.id}
-                                control={form.control}
-                                name="frozenColumns"
-                                render={({ field }) => {
-                                  return (
-                                    <FormItem
-                                      key={item.id}
-                                      className="flex flex-row items-start space-x-3 space-y-0"
-                                    >
-                                      <FormControl>
-                                        <Checkbox
-                                          checked={field.value?.includes(item.id)}
-                                          disabled={!field.value?.includes(item.id) && field.value?.length >= 3}
-                                          onCheckedChange={(checked) => {
-                                            return checked
-                                              ? field.onChange([...field.value, item.id])
-                                              : field.onChange(
-                                                  field.value?.filter(
-                                                    (value) => value !== item.id
-                                                  )
+                                <FormItem
+                                    key={item.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                >
+                                    <FormControl>
+                                    <Checkbox
+                                        checked={field.value?.includes(item.id)}
+                                        disabled={!field.value?.includes(item.id) && field.value?.length >= 3}
+                                        onCheckedChange={(checked) => {
+                                        return checked
+                                            ? field.onChange([...field.value, item.id])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                (value) => value !== item.id
                                                 )
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <FormLabel className="font-normal">
-                                        {item.label}
-                                      </FormLabel>
-                                    </FormItem>
-                                  )
-                                }}
-                              />
+                                            )
+                                        }}
+                                    />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                    {item.label}
+                                    </FormLabel>
+                                </FormItem>
                             ))}
                         </div>
-                        <FormMessage />
-                      </FormItem>
                     )}
                 />
             </CardContent>
@@ -362,7 +371,7 @@ export function SettingsForm() {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel className="font-bold text-sm">Supabase URL</FormLabel>
-                            <FormControl><Input placeholder="https://<project-ref>.supabase.co" {...field} /></FormControl>
+                            <FormControl><Input placeholder="https://&lt;project-ref&gt;.supabase.co" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -395,8 +404,19 @@ export function SettingsForm() {
                     )}
                 />
             </CardContent>
-             <CardFooter>
-                <Button variant="outline"><FileText className="mr-2"/>Export SQL Script</Button>
+             <CardFooter className="flex-col items-start gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowSql(!showSql)}>
+                    <FileText className="mr-2"/>
+                    {showSql ? 'Hide' : 'Show'} SQL Script
+                </Button>
+                {showSql && (
+                    <div className="relative w-full">
+                        <Textarea readOnly value={sqlScript} rows={10} className="font-mono text-xs bg-muted pr-10"/>
+                        <Button type="button" size="icon" variant="ghost" className="absolute top-2 right-2 h-7 w-7" onClick={handleCopySql}>
+                            <Copy className="h-4 w-4"/>
+                        </Button>
+                    </div>
+                )}
              </CardFooter>
         </Card>
 
