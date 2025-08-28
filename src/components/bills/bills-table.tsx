@@ -26,13 +26,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Smartphone } from 'lucide-react';
 
-const statusColors = {
-  overdue: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300',
-  'paid-interest-pending': 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300',
-  settled: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300',
-  pending: 'bg-gray-100 dark:bg-gray-700/50',
-};
-
 type SortKey = keyof CalculatedBill | null;
 
 export function BillsTable({ data }: { data: CalculatedBill[] }) {
@@ -46,6 +39,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     pendingInterest: `!!	Jay Matadi  !!\nPending Interest…\n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount], Rec Dt: [Rec Date]\nTotal Days: [Total Days], Interest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nPay this bill’s pending interest and close full payment.\n\nFrom: [Company].`,
     paymentThanks: `!!	Jay Matadi  !!\n\nThanks For Payment \n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount],\nRec Dt: [Rec Date]\nTotal Days: [Total Days], \nInterest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nWe Proud Work with You...`
   });
+  const [fontSize, setFontSize] = React.useState(12);
   
   React.useEffect(() => {
     try {
@@ -56,6 +50,12 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
         const storedTemplates = localStorage.getItem('whatsappTemplates');
         if (storedTemplates) {
             setWhatsappTemplates(JSON.parse(storedTemplates));
+        }
+        const storedFontSize = localStorage.getItem("billListFontSize");
+        if (storedFontSize) {
+          const newSize = parseInt(storedFontSize, 10);
+          setFontSize(newSize);
+          document.documentElement.style.setProperty('--bill-list-font-size', `${newSize}px`);
         }
     } catch (error) {
         console.error("Could not access localStorage", error);
@@ -134,12 +134,12 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
 
   return (
     <>
-      <div className="rounded-lg bg-card">
+      <div className="rounded-lg bg-card" style={{ fontSize: `${fontSize}px`}}>
         <div className="w-full overflow-x-auto">
             <Table>
                 <TableHeader>
                 <TableRow>
-                    <TableHead className="w-[40px] p-1 font-bold text-sm">Sr.</TableHead>
+                    <TableHead className="w-[40px] p-1 font-bold">Sr.</TableHead>
                     <TableHeaderItem sortKey="billDate" label="Bill Date" />
                     <TableHeaderItem sortKey="billNo" label="Bill No" />
                     <TableHeaderItem sortKey="party" label="Party" />
@@ -149,7 +149,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                     <TableHeaderItem sortKey="totalDays" label="Total Days" />
                     <TableHeaderItem sortKey="interestDays" label="Int. Days" />
                     <TableHeaderItem sortKey="interestAmount" label="Int. Amt" />
-                    <TableHead className="text-right p-1 font-bold text-sm">Actions</TableHead>
+                    <TableHead className="text-right p-1 font-bold">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -157,19 +157,19 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                     <TableRow 
                         key={bill.id} 
                         onClick={() => handleRowClick(bill.id)}
-                        className={cn('font-mono text-xs cursor-pointer', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : statusColors[bill.status])}
+                        className={cn('font-mono cursor-pointer', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : 'bg-card')}
                     >
-                    <TableCell className="font-sans m-px p-0">{index + 1}</TableCell>
-                    <TableCell className="font-medium text-primary/80 m-px p-0">{bill.billDate}</TableCell>
-                    <TableCell className="font-medium text-primary/80 m-px p-0">{bill.billNo}</TableCell>
-                    <TableCell className="font-medium text-primary/80 whitespace-nowrap m-px p-0 max-w-[10ch] truncate">{bill.party}</TableCell>
-                    <TableCell className="m-px p-0">₹{bill.netAmount.toLocaleString('en-IN')}</TableCell>
-                    <TableCell className="m-px p-0">{bill.creditDays}</TableCell>
-                    <TableCell className="m-px p-0">{bill.recDate || '-'}</TableCell>
-                    <TableCell className="m-px p-0">{bill.totalDays}</TableCell>
-                    <TableCell className="m-px p-0">{bill.interestDays}</TableCell>
-                    <TableCell className="m-px p-0">₹{bill.interestAmount.toLocaleString('en-IN')}</TableCell>
-                    <TableCell className="text-right m-px p-0">
+                    <TableCell className="font-sans m-px p-1">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-primary/80 m-px p-1">{bill.billDate}</TableCell>
+                    <TableCell className="font-medium text-primary/80 m-px p-1">{bill.billNo}</TableCell>
+                    <TableCell className="font-medium text-primary/80 whitespace-nowrap m-px p-1 max-w-[10ch] truncate">{bill.party}</TableCell>
+                    <TableCell className="m-px p-1">₹{bill.netAmount.toLocaleString('en-IN')}</TableCell>
+                    <TableCell className="m-px p-1">{bill.creditDays}</TableCell>
+                    <TableCell className="m-px p-1">{bill.recDate || '-'}</TableCell>
+                    <TableCell className="m-px p-1">{bill.totalDays}</TableCell>
+                    <TableCell className="m-px p-1">{bill.interestDays}</TableCell>
+                    <TableCell className="m-px p-1">₹{bill.interestAmount.toLocaleString('en-IN')}</TableCell>
+                    <TableCell className="text-right m-px p-1">
                         <div className="flex items-center justify-end gap-0">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); router.push(`/calculator/${bill.id}`)}}>
                                 <Pencil className="h-4 w-4 text-muted-foreground" />

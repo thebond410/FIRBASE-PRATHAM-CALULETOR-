@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, XCircle, Database, FileText, MessageSquare } from "lucide-react";
+import { KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, XCircle, Database, FileText, MessageSquare, Type } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
@@ -20,6 +20,7 @@ const formSchema = z.object({
   noRecDateTemplate: z.string(),
   pendingInterestTemplate: z.string(),
   paymentThanksTemplate: z.string(),
+  billListFontSize: z.coerce.number().min(8).max(24),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -49,6 +50,7 @@ export function SettingsForm() {
       noRecDateTemplate: defaultTemplates.noRecDate,
       pendingInterestTemplate: defaultTemplates.pendingInterest,
       paymentThanksTemplate: defaultTemplates.paymentThanks,
+      billListFontSize: 12,
     },
   });
 
@@ -75,6 +77,11 @@ export function SettingsForm() {
           form.setValue("pendingInterestTemplate", parsed.pendingInterest || defaultTemplates.pendingInterest);
           form.setValue("paymentThanksTemplate", parsed.paymentThanks || defaultTemplates.paymentThanks);
       }
+      
+      const storedFontSize = localStorage.getItem("billListFontSize");
+      if (storedFontSize) {
+        form.setValue("billListFontSize", parseInt(storedFontSize, 10));
+      }
 
     } catch (error) {
         console.error("Could not access localStorage", error)
@@ -93,6 +100,9 @@ export function SettingsForm() {
           paymentThanks: values.paymentThanksTemplate,
       };
       localStorage.setItem("whatsappTemplates", JSON.stringify(templates));
+      localStorage.setItem("billListFontSize", values.billListFontSize.toString());
+      document.documentElement.style.setProperty('--bill-list-font-size', `${values.billListFontSize}px`);
+
 
       setApiStatus("success");
       toast({
@@ -126,7 +136,7 @@ export function SettingsForm() {
             <div className="flex items-center gap-3">
                 <KeyRound className="h-6 w-6 text-primary"/>
                 <div>
-                    <CardTitle>Gemini API Configuration</CardTitle>
+                    <CardTitle className="text-sm font-bold">Gemini API Configuration</CardTitle>
                     <CardDescription>Enter your API key to enable the cheque scanning feature.</CardDescription>
                 </div>
             </div>
@@ -165,13 +175,40 @@ export function SettingsForm() {
             </div>
           </CardContent>
         </Card>
+        
+        <Card className="shadow-md">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+                <Type className="h-6 w-6 text-primary"/>
+                <div>
+                    <CardTitle className="text-sm font-bold">Appearance</CardTitle>
+                    <CardDescription>Customize the look and feel of the application.</CardDescription>
+                </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <FormField
+              control={form.control}
+              name="billListFontSize"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bill List Font Size (in pixels)</FormLabel>
+                   <FormControl>
+                        <Input type="number" min="8" max="24" {...field} />
+                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
 
         <Card className="shadow-md">
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <Database className="h-6 w-6 text-primary"/>
                     <div>
-                        <CardTitle>Supabase Configuration</CardTitle>
+                        <CardTitle className="text-sm font-bold">Supabase Configuration</CardTitle>
                         <CardDescription>Enter your Supabase URL and Key to save data.</CardDescription>
                     </div>
                 </div>
@@ -226,7 +263,7 @@ export function SettingsForm() {
                 <div className="flex items-center gap-3">
                     <MessageSquare className="h-6 w-6 text-primary"/>
                     <div>
-                        <CardTitle>WhatsApp Templates</CardTitle>
+                        <CardTitle className="text-sm font-bold">WhatsApp Templates</CardTitle>
                         <CardDescription>Edit the templates for WhatsApp messages. Available placeholders: <br/><code className="text-xs font-mono p-1 bg-muted rounded-sm">{placeholders}</code></CardDescription>
                     </div>
                 </div>

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, parse, format } from "date-fns";
-import { Camera, Loader2, Save } from "lucide-react";
+import { Camera, Loader2, Save, Upload } from "lucide-react";
 import { scanCheque } from "@/app/actions";
 import { Label } from "@/components/ui/label";
 
@@ -159,16 +159,21 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
-        <div className="flex justify-end">
-            <label htmlFor="cheque-upload" className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-primary-foreground h-10 px-4 py-2 cursor-pointer bg-gradient-to-r from-accent to-primary hover:opacity-90`}>
-                {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
-                Scan Cheque
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="flex justify-end gap-2">
+            <Button type="button" onClick={() => fileInputRef.current?.click()} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
+                {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                Upload Scan
+            </Button>
+            <label htmlFor="camera-scan" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-primary-foreground h-10 px-4 py-2 cursor-pointer bg-gradient-to-r from-accent to-primary hover:opacity-90">
+                 <Camera className="mr-2 h-4 w-4" />
+                Camera Scan
             </label>
-            <input id="cheque-upload" type="file" accept="image/jpeg, image/png" className="hidden" onChange={handleFileChange} ref={fileInputRef}/>
+            <input id="camera-scan" type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange}/>
+            <input id="upload-scan" type="file" accept="image/jpeg, image/png" className="hidden" onChange={handleFileChange} ref={fileInputRef}/>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-4">
             <FormFieldInput name="billDate" label="Bill Date" />
             <FormFieldInput name="billNo" label="Bill No" />
             <FormFieldInput name="party" label="Party Name" />
