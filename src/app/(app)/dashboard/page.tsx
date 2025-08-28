@@ -2,18 +2,7 @@ import { getCalculatedBills } from '@/lib/data';
 import type { CalculatedBill } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, Trash2, BarChart, Banknote, AlertTriangle, User, FileText } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+import { Upload, Download, BarChart, Banknote, AlertTriangle, User, FileText } from 'lucide-react';
 
 type Summary = {
   totalEntries: number;
@@ -72,32 +61,13 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
 
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <section className="grid grid-cols-3 gap-4">
         {actionButtons.map(btn => (
           <Button key={btn.label} className={`text-white font-semibold text-sm h-12 bg-gradient-to-r ${btn.gradient} hover:opacity-90 transition-opacity`}>
             <btn.icon className="mr-2 h-5 w-5" />
             {btn.label}
           </Button>
         ))}
-         <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="text-white font-semibold text-sm h-12 bg-gradient-to-r from-red-500 to-pink-500 hover:opacity-90 transition-opacity">
-                    <Trash2 className="mr-2 h-5 w-5" /> Remove All
-                </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete all bill data.
-                </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction className="bg-destructive hover:bg-destructive/90">Continue</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">

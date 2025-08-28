@@ -29,15 +29,14 @@ export default function NavMenu({ onLinkClick }: NavMenuProps) {
             href={item.href}
             onClick={onLinkClick}
             className={cn(
-              'flex items-center gap-2 p-2 rounded-md text-sm font-medium transition-colors hover:bg-accent/50 hover:text-primary relative md:p-0 md:hover:bg-transparent',
-              isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              'flex items-center gap-2 p-2 rounded-md transition-colors whitespace-nowrap',
+              isActive 
+                ? 'font-bold text-base bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent' 
+                : 'text-muted-foreground hover:text-foreground font-semibold text-sm'
             )}
           >
-            <item.icon className="h-5 w-5 md:h-4 md:w-4" />
+            <item.icon className="h-5 w-5" />
             <span>{item.label}</span>
-            {isActive && (
-              <span className="absolute hidden md:block -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full" />
-            )}
           </Link>
         );
       })}

@@ -23,8 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Pencil, Trash2, Smartphone } from 'lucide-react';
-import { Badge } from "@/components/ui/badge";
+import { Pencil, Trash2, Smartphone } from 'lucide-react';
 
 const statusColors = {
   overdue: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300',
@@ -66,10 +65,9 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
   }, [data, sortKey, sortOrder]);
 
   const TableHeaderItem = ({ sortKey: key, label }: { sortKey: keyof CalculatedBill, label: string }) => (
-    <TableHead>
-        <Button variant="ghost" onClick={() => handleSort(key)} className="px-2 py-1 h-auto">
+    <TableHead className="p-1">
+        <Button variant="ghost" onClick={() => handleSort(key)} className="px-2 py-1 h-auto font-semibold">
             {label}
-            <ArrowUpDown className="ml-2 h-3 w-3" />
         </Button>
     </TableHead>
   );
@@ -81,7 +79,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
             <Table>
                 <TableHeader>
                 <TableRow>
-                    <TableHead className="w-[40px]">Sr.</TableHead>
+                    <TableHead className="w-[40px] p-1 font-semibold">Sr.</TableHead>
                     <TableHeaderItem sortKey="billDate" label="Bill Date" />
                     <TableHeaderItem sortKey="billNo" label="Bill No" />
                     <TableHeaderItem sortKey="party" label="Party" />
@@ -91,30 +89,24 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                     <TableHeaderItem sortKey="totalDays" label="Total Days" />
                     <TableHeaderItem sortKey="interestDays" label="Int. Days" />
                     <TableHeaderItem sortKey="interestAmount" label="Int. Amt" />
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-right p-1 font-semibold">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
                 {sortedData.map((bill, index) => (
                     <TableRow key={bill.id} className={cn('font-mono text-xs', statusColors[bill.status])}>
-                    <TableCell className="font-sans">{index + 1}</TableCell>
-                    <TableCell className="font-medium text-primary/80">{bill.billDate}</TableCell>
-                    <TableCell className="font-medium text-primary/80">{bill.billNo}</TableCell>
-                    <TableCell className="font-medium text-primary/80 whitespace-nowrap">{bill.party}</TableCell>
-                    <TableCell>₹{bill.netAmount.toLocaleString('en-IN')}</TableCell>
-                    <TableCell>{bill.creditDays}</TableCell>
-                    <TableCell>{bill.recDate || '-'}</TableCell>
-                    <TableCell>{bill.totalDays}</TableCell>
-                    <TableCell>{bill.interestDays}</TableCell>
-                    <TableCell>₹{bill.interestAmount.toLocaleString('en-IN')}</TableCell>
-                    <TableCell>
-                        <Badge variant={bill.status === 'settled' ? 'default' : (bill.status === 'overdue' || bill.status === 'paid-interest-pending' ? 'destructive' : 'secondary')} className="capitalize whitespace-nowrap">
-                            {bill.status.replace('-', ' ')}
-                        </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
+                    <TableCell className="font-sans p-1">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-primary/80 p-1">{bill.billDate}</TableCell>
+                    <TableCell className="font-medium text-primary/80 p-1">{bill.billNo}</TableCell>
+                    <TableCell className="font-medium text-primary/80 whitespace-nowrap p-1 max-w-[150px] truncate">{bill.party}</TableCell>
+                    <TableCell className="p-1">₹{bill.netAmount.toLocaleString('en-IN')}</TableCell>
+                    <TableCell className="p-1">{bill.creditDays}</TableCell>
+                    <TableCell className="p-1">{bill.recDate || '-'}</TableCell>
+                    <TableCell className="p-1">{bill.totalDays}</TableCell>
+                    <TableCell className="p-1">{bill.interestDays}</TableCell>
+                    <TableCell className="p-1">₹{bill.interestAmount.toLocaleString('en-IN')}</TableCell>
+                    <TableCell className="text-right p-1">
+                        <div className="flex items-center justify-end gap-0">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => router.push(`/calculator/${bill.id}`)}>
                                 <Pencil className="h-4 w-4 text-muted-foreground" />
                             </Button>

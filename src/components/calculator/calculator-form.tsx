@@ -7,7 +7,7 @@ import * as z from "zod";
 import { Bill } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, parse, format } from "date-fns";
@@ -165,8 +165,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         </div>
 
         <Card>
-          <CardHeader><CardTitle>Bill Details</CardTitle></CardHeader>
-          <CardContent className="grid md:grid-cols-3 gap-4">
+          <CardContent className="grid md:grid-cols-3 gap-4 pt-6">
             <FormFieldInput name="billDate" label="Bill Date" />
             <FormFieldInput name="billNo" label="Bill No" />
             <FormFieldInput name="party" label="Party Name" />
@@ -177,8 +176,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         </Card>
         
         <Card>
-            <CardHeader><CardTitle>Receipt Details</CardTitle></CardHeader>
-            <CardContent className="grid md:grid-cols-3 gap-4">
+            <CardContent className="grid md:grid-cols-3 gap-4 pt-6">
                 <FormFieldInput name="recDate" label="Receipt Date" />
                 <FormFieldInput name="recAmount" label="Receipt Amount" />
                 <FormFieldInput name="chequeNumber" label="Cheque No" />
@@ -187,8 +185,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         </Card>
 
         <Card>
-            <CardHeader><CardTitle>Interest Calculation</CardTitle></CardHeader>
-            <CardContent className="grid md:grid-cols-4 gap-4">
+            <CardContent className="grid md:grid-cols-4 gap-4 pt-6">
                 <FormFieldInput name="interestRate" label="Interest Rate (%)" />
                 <div className="space-y-2">
                     <Label>Total Days</Label>
