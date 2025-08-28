@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -85,6 +85,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   });
 
   const watchedValues = useWatch({ control: form.control });
+  const watchedParty = useWatch({ control: form.control, name: 'party' });
+  const watchedBillNos = useWatch({ control: form.control, name: 'billNos' });
+  const { setValue } = form;
 
   const [totalDays, setTotalDays] = useState(0);
   const [interestDays, setInterestDays] = useState(0);
@@ -100,8 +103,8 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
   useEffect(() => {
     const fetchBills = async () => {
-      if (watchedValues.party) {
-        const bills = await getUnpaidBillsByParty(watchedValues.party);
+      if (watchedParty) {
+        const bills = await getUnpaidBillsByParty(watchedParty);
         setUnpaidBills(bills);
       } else {
         setUnpaidBills([]);
@@ -109,30 +112,30 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     };
     fetchBills();
     // On party change, reset bill selections
-    form.setValue("billNos", []);
-  }, [watchedValues.party]);
+    setValue("billNos", []);
+  }, [watchedParty, setValue]);
 
   useEffect(() => {
-    const newSelectedBills = unpaidBills.filter(b => watchedValues.billNos?.includes(b.billNo));
+    const newSelectedBills = unpaidBills.filter(b => watchedBillNos?.includes(b.billNo));
     setSelectedBills(newSelectedBills);
     
     if (newSelectedBills.length > 0) {
       const totalNetAmount = newSelectedBills.reduce((sum, b) => sum + b.netAmount, 0);
-      form.setValue("netAmount", totalNetAmount);
+      setValue("netAmount", totalNetAmount);
       
       // Use the date and details from the first selected bill
-      form.setValue("billDate", formatDateForInput(newSelectedBills[0].billDate));
-      form.setValue("creditDays", newSelectedBills[0].creditDays);
-      form.setValue("companyName", newSelectedBills[0].companyName);
-      form.setValue("mobile", newSelectedBills[0].mobile);
-    } else {
-      form.setValue("netAmount", 0);
-      form.setValue("billDate", "");
-      form.setValue("creditDays", 30);
-      form.setValue("companyName", "");
-      form.setValue("mobile", "");
+      setValue("billDate", formatDateForInput(newSelectedBills[0].billDate));
+      setValue("creditDays", newSelectedBills[0].creditDays);
+      setValue("companyName", newSelectedBills[0].companyName);
+      setValue("mobile", newSelectedBills[0].mobile);
+    } else if (!bill) { // only clear if not editing
+      setValue("netAmount", 0);
+      setValue("billDate", "");
+      setValue("creditDays", 30);
+      setValue("companyName", "");
+      setValue("mobile", "");
     }
-  }, [watchedValues.billNos, unpaidBills]);
+  }, [watchedBillNos, unpaidBills, setValue, bill]);
 
 
   useEffect(() => {
@@ -205,24 +208,28 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
 
   async function onSubmit(values: FormValues) {
-    if (selectedBills.length === 0) {
+    if (selectedBills.length === 0 && !bill) {
       toast({ title: "No bills selected", description: "Please select at least one bill to save.", variant: "destructive" });
       return;
     }
-
+    
     setIsSaving(true);
-    let successCount = 0;
 
-    for (const sBill of selectedBills) {
+    const billsToUpdate = bill ? [bill] : selectedBills;
+    let successCount = 0;
+    
+    for (const sBill of billsToUpdate) {
         const billDataToSave = {
-            ...sBill, // Start with existing bill data
+            ...sBill,
             recDate: values.recDate,
-            recAmount: values.recAmount, // This might need to be pro-rated if saving multiple
+            recAmount: values.recAmount,
             chequeNumber: values.chequeNumber || "",
             bankName: values.bankName || "",
             interestPaid: values.interestPaid,
-            creditDays: values.creditDays, // Use the (potentially edited) credit days
-            // id is already in sBill
+            creditDays: values.creditDays,
+            party: values.party, // Make sure to save the potentially changed party
+            companyName: values.companyName,
+            mobile: values.mobile,
         };
 
         // @ts-ignore
@@ -437,5 +444,6 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </Form>
   );
 }
+
 
     
