@@ -20,7 +20,7 @@ import {
 import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { billTableColumns } from '@/lib/types';
+import { billTableColumns, BillTableColumn } from '@/lib/types';
 import { format } from 'date-fns';
 
 type Summary = {
@@ -34,6 +34,12 @@ type OverdueParty = {
   billCount: number;
   totalAmount: number;
 };
+
+// Define which columns are for import/export to exclude calculated fields
+const importExportColumns: BillTableColumn[] = billTableColumns.filter(
+  (col) => !['totalDays', 'interestDays', 'interestAmount', 'interestRate'].includes(col.id)
+);
+
 
 function calculateSummaries(bills: CalculatedBill[]): { summary: Summary; overdueParties: OverdueParty[] } {
   const totalEntries = bills.length;
@@ -116,7 +122,7 @@ export default function DashboardPage() {
   };
   
   const handleDownloadTemplate = () => {
-    const headers = billTableColumns.map(col => col.id).join(',');
+    const headers = importExportColumns.map(col => col.id).join(',');
     const blob = new Blob([headers], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     if (link.href) {
@@ -135,9 +141,9 @@ export default function DashboardPage() {
       toast({ title: "No data to export", description: "There are no bills to download."});
       return;
     }
-    const headers = billTableColumns.map(col => col.id).join(',');
+    const headers = importExportColumns.map(col => col.id).join(',');
     const csvRows = bills.map(bill => {
-        return billTableColumns.map(col => {
+        return importExportColumns.map(col => {
             const value = bill[col.id as keyof CalculatedBill];
              if (value instanceof Date) {
                 return format(value, 'dd/MM/yyyy');
