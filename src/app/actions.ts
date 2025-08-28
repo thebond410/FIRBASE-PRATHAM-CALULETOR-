@@ -92,16 +92,20 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
             keyMap[key.replace(/\s+/g, '').toLowerCase()] = key;
         }
 
-        const getValue = (key: string) => billData[keyMap[key]];
+        const getValue = (key: string) => {
+            const mappedKey = keyMap[key.toLowerCase().replace(/\s+/g, '')];
+            return mappedKey ? billData[mappedKey] : undefined;
+        };
 
-        const parsedDate = parseDate(getValue('billdate'));
+        const parsedDate = parseDate(getValue('billDate'));
         if (!parsedDate) {
             console.warn(`Skipping row due to invalid billDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
             continue;
         }
         
-        const recDateValue = getValue('recdate');
-        const parsedRecDate = recDateValue ? parseDate(recDateValue) : null;
+        const recDateValue = getValue('recDate');
+        const parsedRecDate = (recDateValue !== null && recDateValue !== undefined && recDateValue !== '') ? parseDate(String(recDateValue)) : null;
+
         if (recDateValue && !parsedRecDate) {
              console.warn(`Skipping row due to invalid recDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
              continue;
@@ -110,16 +114,16 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         billsToInsert.push({
             billDate: format(parsedDate, 'yyyy-MM-dd'),
             recDate: parsedRecDate ? format(parsedRecDate, 'yyyy-MM-dd') : null,
-            billNo: getValue('billno') || '',
+            billNo: getValue('billNo') || '',
             party: getValue('party') || '',
-            companyName: getValue('companyname') || '',
+            companyName: getValue('companyName') || '',
             mobile: getValue('mobile') || '',
-            chequeNumber: getValue('chequenumber') || getValue('chequeno') || '',
-            bankName: getValue('bankname') || '',
-            interestPaid: getValue('interestpaid') === 'Yes' ? 'Yes' : 'No',
-            netAmount: parseFloat(getValue('netamount')) || 0,
-            creditDays: parseInt(getValue('creditdays')) || 0,
-            recAmount: parseFloat(getValue('recamount')) || 0,
+            chequeNumber: getValue('chequeNumber') || '',
+            bankName: getValue('bankName') || '',
+            interestPaid: getValue('interestPaid') === 'Yes' ? 'Yes' : 'No',
+            netAmount: parseFloat(getValue('netAmount')) || 0,
+            creditDays: parseInt(getValue('creditDays')) || 0,
+            recAmount: parseFloat(getValue('recAmount')) || 0,
             pes: getValue('pes') || '',
             meter: getValue('meter') || '',
             rate: parseFloat(getValue('rate')) || 0
@@ -139,5 +143,3 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         return { success: false, error: `Database insert failed: ${err.message}` };
     }
 }
-
-    
