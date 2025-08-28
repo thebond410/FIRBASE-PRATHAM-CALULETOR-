@@ -62,7 +62,7 @@ export function SettingsForm() {
     },
   });
 
-  const frozenColumns = form.watch("frozenColumns");
+  const watchedVisibleColumns = form.watch("visibleColumns");
 
   useEffect(() => {
     try {
@@ -240,11 +240,11 @@ export function SettingsForm() {
                 <FormField
                     control={form.control}
                     name="visibleColumns"
-                    render={({ field }) => (
+                    render={() => (
                         <FormItem>
                             <div className="grid grid-cols-3 gap-2">
                             {billTableColumns.map((col) => (
-                                <FormField
+                                <Controller
                                     key={col.id}
                                     control={form.control}
                                     name="visibleColumns"
@@ -255,13 +255,10 @@ export function SettingsForm() {
                                                     <Checkbox
                                                         checked={field.value?.includes(col.id)}
                                                         onCheckedChange={(checked) => {
-                                                            return checked
-                                                            ? field.onChange([...field.value, col.id])
-                                                            : field.onChange(
-                                                                field.value?.filter(
-                                                                    (value) => value !== col.id
-                                                                )
-                                                                )
+                                                            const newValue = checked
+                                                                ? [...field.value, col.id]
+                                                                : field.value?.filter((value) => value !== col.id);
+                                                            field.onChange(newValue);
                                                         }}
                                                     />
                                                 </FormControl>
@@ -296,8 +293,8 @@ export function SettingsForm() {
                     render={() => (
                         <FormItem>
                              <div className="grid grid-cols-3 gap-2">
-                                {billTableColumns.map((col) => (
-                                     <FormField
+                                {billTableColumns.filter(c => watchedVisibleColumns.includes(c.id)).map((col) => (
+                                     <Controller
                                         key={col.id}
                                         control={form.control}
                                         name="frozenColumns"
@@ -309,13 +306,10 @@ export function SettingsForm() {
                                                         checked={field.value?.includes(col.id)}
                                                         disabled={!field.value?.includes(col.id) && field.value?.length >= 3}
                                                         onCheckedChange={(checked) => {
-                                                            return checked
-                                                            ? field.onChange([...field.value, col.id])
-                                                            : field.onChange(
-                                                                field.value?.filter(
-                                                                    (value) => value !== col.id
-                                                                )
-                                                                )
+                                                            const newValue = checked
+                                                                ? [...field.value, col.id]
+                                                                : field.value?.filter((value) => value !== col.id);
+                                                            field.onChange(newValue);
                                                         }}
                                                     />
                                                 </FormControl>
@@ -442,5 +436,7 @@ export function SettingsForm() {
     </Form>
   );
 }
+
+    
 
     
