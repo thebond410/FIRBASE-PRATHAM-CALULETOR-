@@ -2,63 +2,10 @@
 'use server'
 
 import { Bill, CalculatedBill } from '@/lib/types';
-import { differenceInDays, format, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { getSupabaseClient } from './supabase';
+import { calculateBillDetails, parseDate } from './utils';
 
-const today = new Date();
-
-const parseDate = (dateStr: string | null): Date | null => {
-  if (!dateStr) return null;
-  // Try parsing dd/MM/yyyy first, then fall back to yyyy-MM-dd
-  try {
-    const parsed = parse(dateStr, 'dd/MM/yyyy', new Date());
-    if (isValidDate(parsed)) return parsed;
-  } catch (e) { /* ignore parsing error, try next format */ }
-
-  try {
-    const parsed = parse(dateStr, 'yyyy-MM-dd', new Date());
-    if (isValidDate(parsed)) return parsed;
-  } catch (e) { /* ignore parsing error */ }
-
-  return null;
-};
-
-const isValidDate = (d: any) => d instanceof Date && !isNaN(d.getTime());
-
-
-export const calculateBillDetails = (bill: Bill): CalculatedBill => {
-  const billDate = parseDate(bill.billDate);
-  const recDate = parseDate(bill.recDate);
-  const { interestPaid } = bill;
-
-  let totalDays = 0;
-  if (billDate) {
-    totalDays = differenceInDays(recDate || today, billDate);
-  }
-  
-  const interestDays = Math.max(0, totalDays - bill.creditDays);
-  
-  const interestAmount = (bill.netAmount * (bill.interestRate / 100) / 365) * interestDays;
-
-  let status: CalculatedBill['status'] = 'pending';
-  if (recDate) {
-    if (interestPaid === 'Yes') {
-      status = 'settled';
-    } else {
-      status = 'paid-interest-pending';
-    }
-  } else if (totalDays > bill.creditDays) {
-    status = 'overdue';
-  }
-
-  return {
-    ...bill,
-    totalDays,
-    interestDays,
-    interestAmount: Math.round(interestAmount),
-    status,
-  };
-};
 
 export async function getCalculatedBills(): Promise<CalculatedBill[]> {
   const supabase = getSupabaseClient();
@@ -222,5 +169,3 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
         return { success: false, error: err.message };
     }
 }
-
-    

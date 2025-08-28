@@ -196,7 +196,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
         <div className="flex justify-end gap-2 p-1">
             <Button type="button" onClick={() => fileInputRef.current?.click()} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
                 {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
@@ -266,5 +266,3 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </Form>
   );
 }
-
-    
