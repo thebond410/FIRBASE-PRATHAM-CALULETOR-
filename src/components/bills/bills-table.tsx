@@ -172,7 +172,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
             <Table>
                 <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary/90">
-                    <TableHead className="w-[45px] p-1 text-white font-bold sticky left-0 z-20 bg-primary">Sr.</TableHead>
+                    <TableHead className="w-[45px] px-1 text-white font-bold sticky left-0 z-20 bg-primary h-auto py-0">Sr.</TableHead>
                     {visibleColumns.map((col) => {
                         const isFrozen = columnConfig.frozenColumns.includes(col.id);
                         return (
@@ -180,7 +180,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 key={col.id} 
                                 style={isFrozen ? frozenColumnStyles[col.id] : {}}
                                 className={cn(
-                                    "p-1 text-white",
+                                    "px-1 text-white h-auto py-0",
                                     col.className,
                                     isFrozen && "sticky z-10 bg-gradient-to-r from-indigo-600 to-purple-600"
                                 )}
@@ -191,7 +191,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                             </TableHead>
                         );
                     })}
-                    <TableHead className="text-right p-1 text-white font-bold sticky right-0 z-20 bg-primary">Actions</TableHead>
+                    <TableHead className="text-right px-1 text-white font-bold sticky right-0 z-20 bg-primary h-auto py-0">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -199,10 +199,9 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                     <TableRow 
                         key={bill.id} 
                         onClick={() => handleRowClick(bill.id)}
-                        className={cn('font-bold cursor-pointer my-2', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : 'bg-card')}
-                        style={{ margin: '2px 0' }}
+                        className={cn('font-bold cursor-pointer', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : 'bg-card')}
                     >
-                    <TableCell className="font-sans m-px p-1 sticky left-0 z-10 bg-inherit w-[45px]">
+                    <TableCell className="font-sans px-1 sticky left-0 z-10 bg-inherit w-[45px]">
                         {index + 1}
                     </TableCell>
                     {visibleColumns.map(col => {
@@ -212,7 +211,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 key={col.id}
                                 style={isFrozen ? frozenColumnStyles[col.id] : {}}
                                 className={cn(
-                                    'font-bold text-primary/80 m-px p-1 whitespace-nowrap',
+                                    'font-bold text-primary/80 px-1 whitespace-nowrap',
                                     isFrozen && 'sticky z-10 bg-inherit text-purple-800 dark:text-purple-300'
                                 )}
                             >
@@ -221,7 +220,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                             </TableCell>
                          );
                     })}
-                    <TableCell className="text-right m-px p-1 sticky right-0 z-10 bg-inherit">
+                    <TableCell className="text-right px-1 sticky right-0 z-10 bg-inherit">
                         <div className="flex items-center justify-end gap-0">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); router.push(`/calculator/${bill.id}`)}}>
                                 <Pencil className="h-4 w-4 text-muted-foreground" />
