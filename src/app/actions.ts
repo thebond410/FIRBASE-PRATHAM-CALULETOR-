@@ -92,15 +92,15 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
             keyMap[key.replace(/\s+/g, '').toLowerCase()] = key;
         }
 
-        const getValue = (key: string) => billData[keyMap[key.toLowerCase()]];
+        const getValue = (key: string) => billData[keyMap[key]];
 
-        const parsedDate = parseDate(getValue('billDate'));
+        const parsedDate = parseDate(getValue('billdate'));
         if (!parsedDate) {
             console.warn(`Skipping row due to invalid billDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
             continue;
         }
         
-        const recDateValue = getValue('recDate');
+        const recDateValue = getValue('recdate');
         const parsedRecDate = recDateValue ? parseDate(recDateValue) : null;
         if (recDateValue && !parsedRecDate) {
              console.warn(`Skipping row due to invalid recDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
@@ -110,16 +110,16 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         billsToInsert.push({
             billDate: format(parsedDate, 'yyyy-MM-dd'),
             recDate: parsedRecDate ? format(parsedRecDate, 'yyyy-MM-dd') : null,
-            billNo: getValue('billNo') || '',
+            billNo: getValue('billno') || '',
             party: getValue('party') || '',
-            companyName: getValue('companyName') || '',
+            companyName: getValue('companyname') || '',
             mobile: getValue('mobile') || '',
-            chequeNumber: getValue('chequeNumber') || '',
-            bankName: getValue('bankName') || '',
-            interestPaid: getValue('interestPaid') === 'Yes' ? 'Yes' : 'No',
-            netAmount: parseFloat(getValue('netAmount')) || 0,
-            creditDays: parseInt(getValue('creditDays')) || 0,
-            recAmount: parseFloat(getValue('recAmount')) || 0,
+            chequeNumber: getValue('chequenumber') || getValue('chequeno') || '',
+            bankName: getValue('bankname') || '',
+            interestPaid: getValue('interestpaid') === 'Yes' ? 'Yes' : 'No',
+            netAmount: parseFloat(getValue('netamount')) || 0,
+            creditDays: parseInt(getValue('creditdays')) || 0,
+            recAmount: parseFloat(getValue('recamount')) || 0,
             pes: getValue('pes') || '',
             meter: getValue('meter') || '',
             rate: parseFloat(getValue('rate')) || 0
