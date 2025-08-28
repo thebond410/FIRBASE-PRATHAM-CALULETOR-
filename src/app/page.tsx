@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,14 @@ export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated, router]);
+
   if (isAuthenticated) {
-    router.replace('/dashboard');
-    return null;
+    return null; // or a loading indicator
   }
 
   const handleLogin = (e: React.FormEvent) => {
