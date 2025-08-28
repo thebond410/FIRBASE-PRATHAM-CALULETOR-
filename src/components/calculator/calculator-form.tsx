@@ -159,7 +159,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
         <div className="flex justify-end">
             <label htmlFor="cheque-upload" className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-primary-foreground h-10 px-4 py-2 cursor-pointer bg-gradient-to-r from-accent to-primary hover:opacity-90`}>
                 {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
@@ -168,7 +168,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <input id="cheque-upload" type="file" accept="image/jpeg, image/png" className="hidden" onChange={handleFileChange} ref={fileInputRef}/>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3">
             <FormFieldInput name="billDate" label="Bill Date" />
             <FormFieldInput name="billNo" label="Bill No" />
             <FormFieldInput name="party" label="Party Name" />
@@ -194,7 +194,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             </div>
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end">
           <Button type="submit" size="lg" className="font-bold">
             <Save className="mr-2 h-4 w-4"/>
             Save Bill

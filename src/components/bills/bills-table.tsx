@@ -134,7 +134,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
 
   return (
     <>
-      <div className="rounded-lg border shadow-sm bg-card">
+      <div className="rounded-lg bg-card">
         <div className="w-full overflow-x-auto">
             <Table>
                 <TableHeader>
@@ -159,17 +159,17 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                         onClick={() => handleRowClick(bill.id)}
                         className={cn('font-mono text-xs cursor-pointer', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : statusColors[bill.status])}
                     >
-                    <TableCell className="font-sans p-1">{index + 1}</TableCell>
-                    <TableCell className="font-medium text-primary/80 p-1">{bill.billDate}</TableCell>
-                    <TableCell className="font-medium text-primary/80 p-1">{bill.billNo}</TableCell>
-                    <TableCell className="font-medium text-primary/80 whitespace-nowrap p-1 max-w-[10ch] truncate">{bill.party}</TableCell>
-                    <TableCell className="p-1">₹{bill.netAmount.toLocaleString('en-IN')}</TableCell>
-                    <TableCell className="p-1">{bill.creditDays}</TableCell>
-                    <TableCell className="p-1">{bill.recDate || '-'}</TableCell>
-                    <TableCell className="p-1">{bill.totalDays}</TableCell>
-                    <TableCell className="p-1">{bill.interestDays}</TableCell>
-                    <TableCell className="p-1">₹{bill.interestAmount.toLocaleString('en-IN')}</TableCell>
-                    <TableCell className="text-right p-1">
+                    <TableCell className="font-sans m-px p-0">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-primary/80 m-px p-0">{bill.billDate}</TableCell>
+                    <TableCell className="font-medium text-primary/80 m-px p-0">{bill.billNo}</TableCell>
+                    <TableCell className="font-medium text-primary/80 whitespace-nowrap m-px p-0 max-w-[10ch] truncate">{bill.party}</TableCell>
+                    <TableCell className="m-px p-0">₹{bill.netAmount.toLocaleString('en-IN')}</TableCell>
+                    <TableCell className="m-px p-0">{bill.creditDays}</TableCell>
+                    <TableCell className="m-px p-0">{bill.recDate || '-'}</TableCell>
+                    <TableCell className="m-px p-0">{bill.totalDays}</TableCell>
+                    <TableCell className="m-px p-0">{bill.interestDays}</TableCell>
+                    <TableCell className="m-px p-0">₹{bill.interestAmount.toLocaleString('en-IN')}</TableCell>
+                    <TableCell className="text-right m-px p-0">
                         <div className="flex items-center justify-end gap-0">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); router.push(`/calculator/${bill.id}`)}}>
                                 <Pencil className="h-4 w-4 text-muted-foreground" />

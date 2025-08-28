@@ -15,7 +15,7 @@ export default function BillListPage() {
   }
 
   return (
-    <div className="space-y-2">
+    <div>
       {partyFilter && <h1 className="text-xl font-bold tracking-tight">Bills for {partyFilter}</h1>}
       <BillsTable data={bills} />
     </div>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -30,7 +31,7 @@ export default function AppLayout({
                     <Skeleton className="h-8 w-24" />
                 </div>
             </header>
-            <main className="flex-1 p-4 sm:p-6 lg:p-8">
+            <main className="flex-1">
                 <Skeleton className="h-64 w-full" />
             </main>
         </div>
@@ -40,7 +41,7 @@ export default function AppLayout({
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1">
         {children}
       </main>
     </div>

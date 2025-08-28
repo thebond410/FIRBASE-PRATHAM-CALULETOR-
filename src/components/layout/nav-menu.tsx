@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -29,13 +30,13 @@ export default function NavMenu({ onLinkClick }: NavMenuProps) {
             href={item.href}
             onClick={onLinkClick}
             className={cn(
-              'flex items-center gap-2 p-2 rounded-md transition-colors whitespace-nowrap',
+              'flex items-center gap-1 p-1 rounded-md transition-colors whitespace-nowrap',
               isActive 
-                ? 'font-bold text-base bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent' 
-                : 'text-muted-foreground hover:text-foreground font-semibold text-sm'
+                ? 'font-bold text-xs bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent' 
+                : 'text-muted-foreground hover:text-foreground font-semibold text-xs'
             )}
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className="h-3 w-3" />
             <span>{item.label}</span>
           </Link>
         );
