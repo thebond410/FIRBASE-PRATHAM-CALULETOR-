@@ -280,8 +280,8 @@ export function SettingsForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <Card className="shadow-md border-0">
-          <CardHeader>
+        <Card className="shadow-none border-0 p-0">
+          <CardHeader className="p-0 pb-4">
             <div className="flex items-center gap-3">
                 <KeyRound className="h-6 w-6 text-primary"/>
                 <div>
@@ -290,7 +290,7 @@ export function SettingsForm() {
                 </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-0">
             <FormField
               control={form.control}
               name="apiKey"
@@ -325,8 +325,8 @@ export function SettingsForm() {
           </CardContent>
         </Card>
         
-        <Card className="shadow-md border-0">
-          <CardHeader>
+        <Card className="shadow-none border-0 p-0">
+          <CardHeader className="p-0 pb-4">
             <div className="flex items-center gap-3">
                 <Type className="h-6 w-6 text-primary"/>
                 <div>
@@ -335,7 +335,7 @@ export function SettingsForm() {
                 </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-0">
             <FormField
               control={form.control}
               name="billListFontSize"
@@ -352,8 +352,8 @@ export function SettingsForm() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-md border-0">
-            <CardHeader>
+        <Card className="shadow-none border-0 p-0">
+            <CardHeader className="p-0 pb-4">
                 <div className="flex items-center gap-3">
                     <Columns className="h-6 w-6 text-primary"/>
                     <div>
@@ -362,7 +362,7 @@ export function SettingsForm() {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
                  <FormField
                     control={form.control}
                     name="visibleColumns"
@@ -410,8 +410,8 @@ export function SettingsForm() {
             </CardContent>
         </Card>
 
-        <Card className="shadow-md border-0">
-            <CardHeader>
+        <Card className="shadow-none border-0 p-0">
+            <CardHeader className="p-0 pb-4">
                 <div className="flex items-center gap-3">
                     <Pin className="h-6 w-6 text-primary"/>
                     <div>
@@ -420,7 +420,7 @@ export function SettingsForm() {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
                 <FormField
                     control={form.control}
                     name="frozenColumns"
@@ -471,8 +471,8 @@ export function SettingsForm() {
             </CardContent>
         </Card>
 
-        <Card className="shadow-md border-0">
-            <CardHeader>
+        <Card className="shadow-none border-0 p-0">
+            <CardHeader className="p-0 pb-4">
                 <div className="flex items-center gap-3">
                     <Database className="h-6 w-6 text-primary"/>
                     <div>
@@ -481,7 +481,7 @@ export function SettingsForm() {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-0">
                 <FormField
                     control={form.control}
                     name="supabaseUrl"
@@ -526,7 +526,7 @@ export function SettingsForm() {
                     {isSyncing ? 'Loading...' : 'Load from Supabase'}
                 </Button>
             </CardContent>
-             <CardFooter className="flex-col items-start gap-2">
+             <CardFooter className="flex-col items-start gap-2 p-0 pt-4">
                 <Label>SQL Table Scripts</Label>
                 <div className="flex gap-2">
                     <Button type="button" variant="outline" onClick={() => setShowSql(showSql === 'bills' ? null : 'bills')}>
@@ -549,8 +549,8 @@ export function SettingsForm() {
              </CardFooter>
         </Card>
 
-        <Card className="shadow-md border-0">
-            <CardHeader>
+        <Card className="shadow-none border-0 p-0">
+            <CardHeader className="p-0 pb-4">
                 <div className="flex items-center gap-3">
                     <MessageSquare className="h-6 w-6 text-primary"/>
                     <div>
@@ -559,7 +559,7 @@ export function SettingsForm() {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-0">
                  <FormField
                     control={form.control}
                     name="noRecDateTemplate"
