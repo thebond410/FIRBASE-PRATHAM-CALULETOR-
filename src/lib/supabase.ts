@@ -1,50 +1,46 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// This variable will be reused for client-side operations.
+// IMPORTANT: Replace these placeholders with your actual Supabase credentials.
+const supabaseUrl = 'YOUR_SUPABASE_URL_HERE';
+const supabaseKey = 'YOUR_SUPABASE_ANON_KEY_HERE';
+
+if (supabaseUrl === 'YOUR_SUPABASE_URL_HERE' || supabaseKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
+    console.warn("Supabase credentials are placeholders. Please replace them in src/lib/supabase.ts");
+}
+
 let supabaseClient: SupabaseClient | null = null;
+let supabaseServerClient: SupabaseClient | null = null;
+
 
 // This function is for CLIENT-SIDE USAGE ONLY.
-// It initializes a Supabase client using credentials from localStorage.
 export const getSupabaseClient = (): SupabaseClient | null => {
-    // This code will only run in the browser.
-    if (typeof window === 'undefined') {
+    if (!supabaseUrl || !supabaseKey) {
+        console.error("Supabase URL or Key is missing.");
         return null;
     }
     
-    // If the client is already created, return it.
     if (supabaseClient) {
         return supabaseClient;
     }
     
-    try {
-        // Get credentials from localStorage, which are set in the Settings page.
-        const supabaseUrl = localStorage.getItem('supabase_url');
-        const supabaseKey = localStorage.getItem('supabase_key');
-
-        if (supabaseUrl && supabaseKey) {
-            supabaseClient = createClient(supabaseUrl, supabaseKey);
-            return supabaseClient;
-        }
-    } catch (error) {
-        console.error("Could not read Supabase credentials from localStorage.", error);
-    }
-    
-    return null;
+    supabaseClient = createClient(supabaseUrl, supabaseKey);
+    return supabaseClient;
 }
 
 // This function is for SERVER-SIDE USAGE ONLY.
-// It initializes a Supabase client using environment variables.
-export const getSupabaseServerClient = () => {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-        return createClient(supabaseUrl, supabaseKey, {
-            auth: { persistSession: false }
-        });
+export const getSupabaseServerClient = (): SupabaseClient | null => {
+     if (!supabaseUrl || !supabaseKey) {
+        console.error("Supabase URL or Key is missing.");
+        return null;
     }
     
-    console.error("Supabase server client not configured. Check environment variables.");
-    return null;
+    if (supabaseServerClient) {
+        return supabaseServerClient;
+    }
+
+    supabaseServerClient = createClient(supabaseUrl, supabaseKey, {
+        auth: { persistSession: false }
+    });
+    return supabaseServerClient;
 }

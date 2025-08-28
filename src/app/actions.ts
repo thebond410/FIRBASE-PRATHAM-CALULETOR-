@@ -6,6 +6,7 @@ import { getSupabaseServerClient } from '@/lib/supabase';
 import { Bill } from '@/lib/types';
 import { parseDate } from '@/lib/utils';
 import { format } from 'date-fns';
+import * as xlsx from 'xlsx';
 
 export async function scanCheque(input: ExtractChequeDataInput) {
     try {
@@ -30,58 +31,104 @@ export async function scanCheque(input: ExtractChequeDataInput) {
     }
 }
 
-export async function importBillsFromCSV(csvText: string): Promise<{success: boolean, count?: number, error?: string}> {
-    const supabase = getSupabaseServerClient();
-    if (!supabase) return { success: false, error: "Supabase not configured. Please check your server environment variables." };
-
-    const lines = csvText.trim().split('\n');
-    if (lines.length < 2) {
-        return { success: false, error: "CSV file must have a header row and at least one data row."};
-    }
+function parseCSV(text: string): Record<string, any>[] {
+    const lines = text.trim().split('\n');
+    if (lines.length < 2) return [];
 
     const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const rows = lines.slice(1);
 
+    return rows.map(row => {
+        const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
+        if (values.length === 0) return null;
+        
+        const rowData: any = {};
+        header.forEach((key, index) => {
+            rowData[key] = values[index] || '';
+        });
+        return rowData;
+    }).filter(Boolean) as Record<string, any>[];
+}
+
+function parseExcel(buffer: ArrayBuffer): Record<string, any>[] {
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    return xlsx.utils.sheet_to_json(worksheet);
+}
+
+
+export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Promise<{success: boolean, count?: number, error?: string}> {
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return { success: false, error: "Supabase not configured. Please check your server environment variables." };
+
+    let jsonData: Record<string, any>[] = [];
+
+    try {
+        if (fileType === 'text/csv') {
+            const csvText = new TextDecoder().decode(fileBuffer);
+            jsonData = parseCSV(csvText);
+        } else if (fileType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || fileType === 'application/vnd.ms-excel') {
+            jsonData = parseExcel(fileBuffer);
+        } else {
+            return { success: false, error: `Unsupported file type: ${fileType}` };
+        }
+    } catch (parseError: any) {
+        console.error("Error parsing file:", parseError);
+        return { success: false, error: `Failed to parse the file: ${parseError.message}` };
+    }
+
+
+    if (jsonData.length === 0) {
+        return { success: false, error: "No data found in the file."};
+    }
+    
     const billsToInsert: Omit<Bill, 'id' | 'created_at' | 'updated_at'>[] = [];
 
-    for (const row of rows) {
-        const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
-        if(values.length === 0) continue;
-        
-        const billData: any = {};
-        header.forEach((key, index) => {
-            billData[key] = values[index] || '';
-        });
+    for (const billData of jsonData) {
+        // Adjust keys to handle potential inconsistencies from Excel parsing (e.g. "Bill Date" vs "billDate")
+        const normalizedData = Object.keys(billData).reduce((acc, key) => {
+            const normalizedKey = key.replace(/\s+/g, '').toLowerCase();
+            const matchingKey = Object.keys(billData).find(k => k.replace(/\s+/g, '').toLowerCase() === normalizedKey);
+            if (matchingKey) {
+                acc[normalizedKey] = billData[matchingKey];
+            }
+            return acc;
+        }, {} as any);
 
-        const parsedDate = parseDate(billData.billDate);
+        const billDateKey = Object.keys(normalizedData).find(k => k.toLowerCase().includes('billdate'));
+        const recDateKey = Object.keys(normalizedData).find(k => k.toLowerCase().includes('recdate'));
+
+        const parsedDate = parseDate(billDateKey ? normalizedData[billDateKey] : null);
         if (!parsedDate) {
-            console.warn(`Skipping row due to invalid billDate format: ${row}. Expected dd/MM/yyyy.`);
+            console.warn(`Skipping row due to invalid billDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
             continue;
         }
         
-        const parsedRecDate = billData.recDate ? parseDate(billData.recDate) : null;
-        if (billData.recDate && !parsedRecDate) {
-             console.warn(`Skipping row due to invalid recDate format: ${row}. Expected dd/MM/yyyy.`);
+        const recDateValue = recDateKey ? normalizedData[recDateKey] : null;
+        const parsedRecDate = recDateValue ? parseDate(recDateValue) : null;
+        if (recDateValue && !parsedRecDate) {
+             console.warn(`Skipping row due to invalid recDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
              continue;
         }
 
         billsToInsert.push({
             billDate: format(parsedDate, 'yyyy-MM-dd'),
             recDate: parsedRecDate ? format(parsedRecDate, 'yyyy-MM-dd') : null,
-            billNo: billData.billNo || '',
-            party: billData.party || '',
-            companyName: billData.companyName || '',
-            mobile: billData.mobile || '',
-            chequeNumber: billData.chequeNumber || '',
-            bankName: billData.bankName || '',
-            interestPaid: billData.interestPaid === 'Yes' ? 'Yes' : 'No',
-            netAmount: parseFloat(billData.netAmount) || 0,
-            creditDays: parseInt(billData.creditDays) || 0,
-            recAmount: parseFloat(billData.recAmount) || 0,
+            billNo: normalizedData.billno || '',
+            party: normalizedData.party || '',
+            companyName: normalizedData.companyname || '',
+            mobile: normalizedData.mobile || '',
+            chequeNumber: normalizedData.chequenumber || '',
+            bankName: normalizedData.bankname || '',
+            interestPaid: normalizedData.interestpaid === 'Yes' ? 'Yes' : 'No',
+            netAmount: parseFloat(normalizedData.netamount) || 0,
+            creditDays: parseInt(normalizedData.creditdays) || 0,
+            recAmount: parseFloat(normalizedData.recamount) || 0,
             interestRate: 0,
-            pes: billData.pes || '',
-            meter: billData.meter || '',
-            rate: parseFloat(billData.rate) || 0
+            pes: normalizedData.pes || '',
+            meter: normalizedData.meter || '',
+            rate: parseFloat(normalizedData.rate) || 0
         });
     }
 
@@ -95,7 +142,7 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
         return { success: true, count: billsToInsert.length };
     } catch (err: any) {
         console.error("Error importing bills:", err);
-        return { success: false, error: err.message };
+        return { success: false, error: `Database insert failed: ${err.message}` };
     }
 }
 

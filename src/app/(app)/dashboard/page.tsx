@@ -3,11 +3,11 @@
 
 import { useRouter } from 'next/navigation';
 import { clearAllBills, getCalculatedBills } from '@/lib/data';
-import { importBillsFromCSV } from '@/app/actions';
+import { importBills } from '@/app/actions';
 import type { CalculatedBill } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, BarChart, Banknote, AlertTriangle, User, Trash2, List } from 'lucide-react';
+import { Upload, Download, BarChart, Banknote, AlertTriangle, User, Trash2, List, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -80,6 +80,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [bills, setBills] = useState<CalculatedBill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
   const { summary, overdueParties } = calculateSummaries(bills);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -192,16 +193,19 @@ export default function DashboardPage() {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    
+    setIsUploading(true);
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-        const text = e.target?.result;
-        if (typeof text !== 'string') {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        if (!arrayBuffer) {
             toast({ title: "File Error", description: "Could not read the file content.", variant: "destructive"});
+            setIsUploading(false);
             return;
         }
         try {
-            const result = await importBillsFromCSV(text);
+            const result = await importBills(arrayBuffer, file.type);
             if (result.success) {
                 toast({ title: "Import Successful", description: `${result.count} bills have been imported.`});
                 // Data will be updated via real-time sync
@@ -210,9 +214,11 @@ export default function DashboardPage() {
             }
         } catch (error: any) {
              toast({ title: "Import Error", description: error.message, variant: "destructive"});
+        } finally {
+            setIsUploading(false);
         }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
     
     // Reset file input
     if (fileInputRef.current) {
@@ -229,11 +235,11 @@ export default function DashboardPage() {
     <div className="flex flex-col space-y-4 p-0">
 
       <section className="grid grid-cols-4 gap-2">
-        <Button onClick={() => fileInputRef.current?.click()} className={`text-white font-semibold text-xs h-12 bg-gradient-to-r from-teal-500 to-cyan-500 hover:opacity-90 transition-opacity`}>
-            <Upload className="mr-1 h-4 w-4" />
+        <Button onClick={() => fileInputRef.current?.click()} className={`text-white font-semibold text-xs h-12 bg-gradient-to-r from-teal-500 to-cyan-500 hover:opacity-90 transition-opacity`} disabled={isUploading}>
+            {isUploading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Upload className="mr-1 h-4 w-4" />}
             Upload
         </Button>
-        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".csv" />
+        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".csv, .xls, .xlsx" />
 
         <Button onClick={handleDownloadTemplate} className={`text-white font-semibold text-xs h-12 bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 transition-opacity`}>
             <Download className="mr-1 h-4 w-4" />
@@ -318,5 +324,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
