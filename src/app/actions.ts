@@ -116,7 +116,7 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
             recDate: parsedRecDate ? format(parsedRecDate, 'yyyy-MM-dd') : null,
             billNo: String(getValue('billNo') || ''),
             party: String(getValue('party') || ''),
-            companyName: String(getValue('companyName') || ''),
+            companyName: String(getValue('companyName') || getValue('company') || ''),
             mobile: String(getValue('mobile') || ''),
             chequeNumber: String(getValue('chequeNumber') || getValue('chqno') || ''),
             bankName: String(getValue('bankName') || ''),
@@ -178,4 +178,3 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         return { success: false, error: `Database insert failed: ${err.message}` };
     }
 }
-
