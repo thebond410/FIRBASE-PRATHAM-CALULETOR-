@@ -168,7 +168,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <input id="cheque-upload" type="file" accept="image/jpeg, image/png" className="hidden" onChange={handleFileChange} ref={fileInputRef}/>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <FormFieldInput name="billDate" label="Bill Date" />
             <FormFieldInput name="billNo" label="Bill No" />
             <FormFieldInput name="party" label="Party Name" />
@@ -204,5 +204,3 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </Form>
   );
 }
-
-    

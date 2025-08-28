@@ -15,11 +15,9 @@ export default function BillListPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Bill List {partyFilter && `for ${partyFilter}`}</h1>
+    <div className="space-y-2">
+      {partyFilter && <h1 className="text-xl font-bold tracking-tight">Bills for {partyFilter}</h1>}
       <BillsTable data={bills} />
     </div>
   );
 }
-
-    
