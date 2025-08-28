@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, XCircle, Database, FileText, MessageSquare, Type } from "lucide-react";
+import { KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, XCircle, Database, FileText, MessageSquare, Type, Columns, Pin } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { billTableColumns, BillTableColumn } from "@/lib/types";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 const formSchema = z.object({
   apiKey: z.string().min(1, "API Key is required."),
@@ -21,6 +24,8 @@ const formSchema = z.object({
   pendingInterestTemplate: z.string(),
   paymentThanksTemplate: z.string(),
   billListFontSize: z.coerce.number().min(8).max(24),
+  visibleColumns: z.array(z.string()),
+  frozenColumns: z.array(z.string()),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -40,6 +45,7 @@ export function SettingsForm() {
   const [showSupabaseKey, setShowSupabaseKey] = useState(false);
   const [apiStatus, setApiStatus] = useState<ApiStatus>("unconfigured");
   
+  const defaultVisibleColumns = billTableColumns.map(c => c.id);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -51,8 +57,12 @@ export function SettingsForm() {
       pendingInterestTemplate: defaultTemplates.pendingInterest,
       paymentThanksTemplate: defaultTemplates.paymentThanks,
       billListFontSize: 12,
+      visibleColumns: defaultVisibleColumns,
+      frozenColumns: [],
     },
   });
+
+  const frozenColumns = form.watch("frozenColumns");
 
   useEffect(() => {
     try {
@@ -83,10 +93,17 @@ export function SettingsForm() {
         form.setValue("billListFontSize", parseInt(storedFontSize, 10));
       }
 
+      const storedColumnConfig = localStorage.getItem("billListColumnConfig");
+      if (storedColumnConfig) {
+        const { visibleColumns, frozenColumns } = JSON.parse(storedColumnConfig);
+        form.setValue("visibleColumns", visibleColumns || defaultVisibleColumns);
+        form.setValue("frozenColumns", frozenColumns || []);
+      }
+
     } catch (error) {
         console.error("Could not access localStorage", error)
     }
-  }, [form]);
+  }, [form, defaultVisibleColumns]);
 
   function onSubmit(values: FormValues) {
     try {
@@ -103,11 +120,17 @@ export function SettingsForm() {
       localStorage.setItem("billListFontSize", values.billListFontSize.toString());
       document.documentElement.style.setProperty('--bill-list-font-size', `${values.billListFontSize}px`);
 
+      const columnConfig = {
+        visibleColumns: values.visibleColumns,
+        frozenColumns: values.frozenColumns,
+      };
+      localStorage.setItem("billListColumnConfig", JSON.stringify(columnConfig));
+
 
       setApiStatus("success");
       toast({
         title: "Settings Saved",
-        description: "Your settings have been successfully saved.",
+        description: "Your settings have been successfully saved. Refresh the Bill List to see changes.",
       });
     } catch (error) {
         console.error("Could not access localStorage", error);
@@ -130,7 +153,7 @@ export function SettingsForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <Card className="shadow-md">
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -147,7 +170,7 @@ export function SettingsForm() {
               name="apiKey"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Your Gemini API Key</FormLabel>
+                  <FormLabel className="font-bold text-sm">Your Gemini API Key</FormLabel>
                   <div className="relative">
                     <FormControl>
                       <Input
@@ -192,7 +215,7 @@ export function SettingsForm() {
               name="billListFontSize"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bill List Font Size (in pixels)</FormLabel>
+                  <FormLabel className="font-bold text-sm">Bill List Font Size (in pixels)</FormLabel>
                    <FormControl>
                         <Input type="number" min="8" max="24" {...field} />
                    </FormControl>
@@ -201,6 +224,113 @@ export function SettingsForm() {
               )}
             />
           </CardContent>
+        </Card>
+
+        <Card className="shadow-md">
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    <Columns className="h-6 w-6 text-primary"/>
+                    <div>
+                        <CardTitle className="text-sm font-bold">Column Visibility</CardTitle>
+                        <CardDescription>Select which columns to display in the bill list.</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <FormField
+                    control={form.control}
+                    name="visibleColumns"
+                    render={({ field }) => (
+                        <FormItem>
+                            <div className="grid grid-cols-3 gap-2">
+                            {billTableColumns.map((col) => (
+                                <FormField
+                                    key={col.id}
+                                    control={form.control}
+                                    name="visibleColumns"
+                                    render={({ field }) => {
+                                        return (
+                                            <FormItem className="flex items-center gap-2 space-y-0">
+                                                <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value?.includes(col.id)}
+                                                        onCheckedChange={(checked) => {
+                                                            return checked
+                                                            ? field.onChange([...field.value, col.id])
+                                                            : field.onChange(
+                                                                field.value?.filter(
+                                                                    (value) => value !== col.id
+                                                                )
+                                                                )
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">{col.label}</FormLabel>
+                                            </FormItem>
+                                        )
+                                    }}
+                                />
+                            ))}
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </CardContent>
+        </Card>
+
+        <Card className="shadow-md">
+            <CardHeader>
+                <div className="flex items-center gap-3">
+                    <Pin className="h-6 w-6 text-primary"/>
+                    <div>
+                        <CardTitle className="text-sm font-bold">Column Freezing</CardTitle>
+                        <CardDescription>Select up to 3 columns to freeze on the left side of the table.</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                 <FormField
+                    control={form.control}
+                    name="frozenColumns"
+                    render={() => (
+                        <FormItem>
+                             <div className="grid grid-cols-3 gap-2">
+                                {billTableColumns.map((col) => (
+                                     <FormField
+                                        key={col.id}
+                                        control={form.control}
+                                        name="frozenColumns"
+                                        render={({ field }) => {
+                                        return (
+                                            <FormItem className="flex items-center gap-2 space-y-0">
+                                                <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value?.includes(col.id)}
+                                                        disabled={!field.value?.includes(col.id) && field.value?.length >= 3}
+                                                        onCheckedChange={(checked) => {
+                                                            return checked
+                                                            ? field.onChange([...field.value, col.id])
+                                                            : field.onChange(
+                                                                field.value?.filter(
+                                                                    (value) => value !== col.id
+                                                                )
+                                                                )
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">{col.label}</FormLabel>
+                                            </FormItem>
+                                            )
+                                        }}
+                                     />
+                                ))}
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </CardContent>
         </Card>
 
         <Card className="shadow-md">
@@ -219,7 +349,7 @@ export function SettingsForm() {
                     name="supabaseUrl"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Supabase URL</FormLabel>
+                            <FormLabel className="font-bold text-sm">Supabase URL</FormLabel>
                             <FormControl><Input placeholder="https://<project-ref>.supabase.co" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
@@ -230,7 +360,7 @@ export function SettingsForm() {
                     name="supabaseKey"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Supabase Anon Key</FormLabel>
+                            <FormLabel className="font-bold text-sm">Supabase Anon Key</FormLabel>
                             <div className="relative">
                             <FormControl>
                                 <Input
@@ -274,7 +404,7 @@ export function SettingsForm() {
                     name="noRecDateTemplate"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Template: Overdue Bill</FormLabel>
+                            <FormLabel className="font-bold text-sm">Template: Overdue Bill</FormLabel>
                             <FormControl><Textarea rows={6} {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
@@ -285,7 +415,7 @@ export function SettingsForm() {
                     name="pendingInterestTemplate"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Template: Pending Interest</FormLabel>
+                            <FormLabel className="font-bold text-sm">Template: Pending Interest</FormLabel>
                             <FormControl><Textarea rows={6} {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
@@ -296,7 +426,7 @@ export function SettingsForm() {
                     name="paymentThanksTemplate"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Template: Payment Thanks</FormLabel>
+                            <FormLabel className="font-bold text-sm">Template: Payment Thanks</FormLabel>
                             <FormControl><Textarea rows={6} {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
@@ -312,3 +442,5 @@ export function SettingsForm() {
     </Form>
   );
 }
+
+    

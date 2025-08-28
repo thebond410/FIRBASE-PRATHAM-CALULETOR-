@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
-import type { CalculatedBill } from '@/lib/types';
+import type { CalculatedBill, BillTableColumn } from '@/lib/types';
 import {
   Table,
   TableBody,
@@ -25,8 +25,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Smartphone } from 'lucide-react';
+import { billTableColumns } from "@/lib/types";
 
 type SortKey = keyof CalculatedBill | null;
+
+type ColumnConfig = {
+  visibleColumns: string[];
+  frozenColumns: string[];
+};
 
 export function BillsTable({ data }: { data: CalculatedBill[] }) {
   const router = useRouter();
@@ -40,7 +46,11 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     paymentThanks: `!!	Jay Matadi  !!\n\nThanks For Payment \n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount],\nRec Dt: [Rec Date]\nTotal Days: [Total Days], \nInterest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nWe Proud Work with You...`
   });
   const [fontSize, setFontSize] = React.useState(12);
-  
+  const [columnConfig, setColumnConfig] = React.useState<ColumnConfig>({
+      visibleColumns: billTableColumns.map(c => c.id),
+      frozenColumns: [],
+  });
+
   React.useEffect(() => {
     try {
         const storedId = localStorage.getItem('selectedBillId');
@@ -55,7 +65,10 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
         if (storedFontSize) {
           const newSize = parseInt(storedFontSize, 10);
           setFontSize(newSize);
-          document.documentElement.style.setProperty('--bill-list-font-size', `${newSize}px`);
+        }
+        const storedColumnConfig = localStorage.getItem("billListColumnConfig");
+        if (storedColumnConfig) {
+            setColumnConfig(JSON.parse(storedColumnConfig));
         }
     } catch (error) {
         console.error("Could not access localStorage", error);
@@ -124,13 +137,33 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     });
   }, [data, sortKey, sortOrder]);
 
-  const TableHeaderItem = ({ sortKey: key, label, className }: { sortKey: keyof CalculatedBill, label: string, className?: string }) => (
-    <TableHead className={cn("p-1 text-white", className)}>
-        <Button variant="ghost" onClick={() => handleSort(key)} className="px-2 py-1 h-auto text-sm text-white hover:text-white/90">
-            {label}
-        </Button>
-    </TableHead>
-  );
+  const getColumnStyle = (isFrozen: boolean, index: number): React.CSSProperties => {
+    if (!isFrozen) return {};
+    
+    const leftOffset = index * 100; // Adjust this value based on your column widths
+
+    return {
+        left: `${leftOffset}px`,
+        zIndex: 20
+    };
+  };
+
+  const visibleColumns = billTableColumns.filter(col => columnConfig.visibleColumns.includes(col.id));
+
+  const frozenColumnStyles = React.useMemo(() => {
+    let left = 45; // Corresponds to the width of Sr. No column
+    const styles: { [key: string]: React.CSSProperties } = {};
+    const frozen = visibleColumns.filter(c => columnConfig.frozenColumns.includes(c.id));
+
+    frozen.forEach(col => {
+      styles[col.id] = { left: `${left}px` };
+      // rough estimate of column widths
+      if (col.id === 'party') left += 120;
+      else if (col.id === 'billNo') left += 80;
+      else left += 100;
+    });
+    return styles;
+  }, [columnConfig, visibleColumns]);
 
   return (
     <>
@@ -139,17 +172,26 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
             <Table>
                 <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary/90">
-                    <TableHead className="w-[40px] p-1 text-white font-bold">Sr.</TableHead>
-                    <TableHeaderItem sortKey="billDate" label="Date" className="bg-gradient-to-r from-blue-600 to-blue-500" />
-                    <TableHeaderItem sortKey="billNo" label="Bill#" className="bg-gradient-to-r from-green-600 to-green-500"/>
-                    <TableHeaderItem sortKey="party" label="Party" className="bg-gradient-to-r from-indigo-600 to-indigo-500"/>
-                    <TableHeaderItem sortKey="netAmount" label="Net Amt" className="bg-gradient-to-r from-purple-600 to-purple-500"/>
-                    <TableHeaderItem sortKey="creditDays" label="Cr. Days" className="bg-gradient-to-r from-pink-600 to-pink-500"/>
-                    <TableHeaderItem sortKey="recDate" label="Rec. Date" className="bg-gradient-to-r from-red-600 to-red-500"/>
-                    <TableHeaderItem sortKey="totalDays" label="Total Days" className="bg-gradient-to-r from-orange-600 to-orange-500"/>
-                    <TableHeaderItem sortKey="interestDays" label="Int. Days" className="bg-gradient-to-r from-yellow-600 to-yellow-500"/>
-                    <TableHeaderItem sortKey="interestAmount" label="Int. Amt" className="bg-gradient-to-r from-teal-600 to-teal-500"/>
-                    <TableHead className="text-right p-1 text-white font-bold">Actions</TableHead>
+                    <TableHead className="w-[45px] p-1 text-white font-bold sticky left-0 z-20 bg-primary">Sr.</TableHead>
+                    {visibleColumns.map((col) => {
+                        const isFrozen = columnConfig.frozenColumns.includes(col.id);
+                        return (
+                            <TableHead 
+                                key={col.id} 
+                                style={isFrozen ? frozenColumnStyles[col.id] : {}}
+                                className={cn(
+                                    "p-1 text-white",
+                                    col.className,
+                                    isFrozen && "sticky z-10 bg-gradient-to-r from-indigo-600 to-purple-600"
+                                )}
+                            >
+                                <Button variant="ghost" onClick={() => handleSort(col.id as keyof CalculatedBill)} className="px-2 py-0 h-auto text-xs text-white hover:text-white/90 font-bold">
+                                    {col.shortLabel}
+                                </Button>
+                            </TableHead>
+                        );
+                    })}
+                    <TableHead className="text-right p-1 text-white font-bold sticky right-0 z-20 bg-primary">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -158,18 +200,28 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                         key={bill.id} 
                         onClick={() => handleRowClick(bill.id)}
                         className={cn('font-bold cursor-pointer my-2', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : 'bg-card')}
+                        style={{ margin: '2px 0' }}
                     >
-                    <TableCell className="font-sans m-px p-1">{index + 1}</TableCell>
-                    <TableCell className="font-bold text-primary/80 m-px p-1">{bill.billDate}</TableCell>
-                    <TableCell className="font-bold text-primary/80 m-px p-1">{bill.billNo}</TableCell>
-                    <TableCell className="font-bold text-primary/80 whitespace-nowrap m-px p-1 max-w-[10ch] truncate">{bill.party}</TableCell>
-                    <TableCell className="m-px p-1">₹{bill.netAmount.toLocaleString('en-IN')}</TableCell>
-                    <TableCell className="m-px p-1">{bill.creditDays}</TableCell>
-                    <TableCell className="m-px p-1">{bill.recDate || '-'}</TableCell>
-                    <TableCell className="m-px p-1">{bill.totalDays}</TableCell>
-                    <TableCell className="m-px p-1">{bill.interestDays}</TableCell>
-                    <TableCell className="m-px p-1">₹{bill.interestAmount.toLocaleString('en-IN')}</TableCell>
-                    <TableCell className="text-right m-px p-1">
+                    <TableCell className="font-sans m-px p-1 sticky left-0 z-10 bg-inherit w-[45px]">
+                        {index + 1}
+                    </TableCell>
+                    {visibleColumns.map(col => {
+                         const isFrozen = columnConfig.frozenColumns.includes(col.id);
+                         return (
+                            <TableCell
+                                key={col.id}
+                                style={isFrozen ? frozenColumnStyles[col.id] : {}}
+                                className={cn(
+                                    'font-bold text-primary/80 m-px p-1 whitespace-nowrap',
+                                    isFrozen && 'sticky z-10 bg-inherit text-purple-800 dark:text-purple-300'
+                                )}
+                            >
+                               {col.id === 'netAmount' || col.id === 'interestAmount' ? '₹' : ''}
+                               {bill[col.id as keyof CalculatedBill]?.toLocaleString('en-IN')}
+                            </TableCell>
+                         );
+                    })}
+                    <TableCell className="text-right m-px p-1 sticky right-0 z-10 bg-inherit">
                         <div className="flex items-center justify-end gap-0">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); router.push(`/calculator/${bill.id}`)}}>
                                 <Pencil className="h-4 w-4 text-muted-foreground" />
@@ -213,3 +265,5 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     </>
   );
 }
+
+    
