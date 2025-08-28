@@ -3,14 +3,14 @@
 
 import { Bill, CalculatedBill } from '@/lib/types';
 import { format } from 'date-fns';
-import { getSupabaseClient } from './supabase';
+import { getSupabaseServerClient } from './supabase';
 import { calculateBillDetails, parseDate } from './utils';
 
 
 export async function getCalculatedBills(): Promise<CalculatedBill[]> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServerClient();
   if (!supabase) {
-      console.log("Supabase not configured, returning empty array.");
+      console.log("Supabase not configured for server, returning empty array.");
       return [];
   }
   
@@ -26,7 +26,7 @@ export async function getCalculatedBills(): Promise<CalculatedBill[]> {
 };
 
 export async function getParties(): Promise<string[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServerClient();
     if (!supabase) return [];
 
     const { data, error } = await supabase.from('bills').select('party').order('party');
@@ -42,7 +42,7 @@ export async function getParties(): Promise<string[]> {
 }
 
 export async function getUnpaidBillsByParty(party: string): Promise<Bill[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServerClient();
     if (!supabase) return [];
 
     // Fetches bills that are not settled (i.e., payment received but interest not paid, or no payment received at all)
@@ -62,7 +62,7 @@ export async function getUnpaidBillsByParty(party: string): Promise<Bill[]> {
 }
 
 export async function getBillById(id: number): Promise<Bill | null> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServerClient();
   if (!supabase) return null;
 
   const { data, error } = await supabase
@@ -79,7 +79,7 @@ export async function getBillById(id: number): Promise<Bill | null> {
 }
 
 export async function saveBill(bill: Omit<Bill, 'created_at' | 'updated_at'> & { id?: number }): Promise<{success: boolean, error?: string}> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServerClient();
   if (!supabase) return { success: false, error: "Supabase not configured." };
 
   const billToSave = {
@@ -116,7 +116,7 @@ export async function saveBill(bill: Omit<Bill, 'created_at' | 'updated_at'> & {
 }
 
 export async function deleteBill(id: number): Promise<{success: boolean, error?: string}> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServerClient();
     if (!supabase) return { success: false, error: "Supabase not configured." };
 
     try {
@@ -130,7 +130,7 @@ export async function deleteBill(id: number): Promise<{success: boolean, error?:
 }
 
 export async function clearAllBills(): Promise<{success: boolean, error?: string}> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseServerClient();
     if (!supabase) return { success: false, error: "Supabase not configured." };
 
     try {
@@ -145,8 +145,8 @@ export async function clearAllBills(): Promise<{success: boolean, error?: string
 }
 
 export async function importBillsFromCSV(csvText: string): Promise<{success: boolean, count?: number, error?: string}> {
-    const supabase = getSupabaseClient();
-    if (!supabase) return { success: false, error: "Supabase not configured." };
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return { success: false, error: "Supabase not configured. Please check your server environment variables." };
 
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) {
@@ -191,7 +191,7 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
             netAmount: parseFloat(billData.netAmount) || 0,
             creditDays: parseInt(billData.creditDays) || 0,
             recAmount: parseFloat(billData.recAmount) || 0,
-            interestRate: parseFloat(billData.interestRate) || 0,
+            interestRate: 0,
             pes: billData.pes || '',
             meter: billData.meter || '',
             rate: parseFloat(billData.rate) || 0
@@ -211,5 +211,3 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
         return { success: false, error: err.message };
     }
 }
-
-    
