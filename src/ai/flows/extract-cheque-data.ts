@@ -15,7 +15,7 @@ const ExtractChequeDataInputSchema = z.object({
   photoDataUri: z
     .string()
     .describe(
-      "A photo of a cheque, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A photo of a cheque, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
 });
 export type ExtractChequeDataInput = z.infer<typeof ExtractChequeDataInputSchema>;
@@ -39,6 +39,7 @@ const prompt = ai.definePrompt({
   input: {schema: ExtractChequeDataInputSchema},
   output: {schema: ExtractChequeDataOutputSchema},
   prompt: `Analyze this cheque image and extract the following data strictly as a JSON object: { 'partyName': 'text next to FOR/For', 'companyName': 'text next to PAY/Pay', 'date': 'cheque date in DD/MM/YYYY format', 'amount': 'numerical amount', 'chequeNumber': 'cheque number', 'bankName': 'name of the bank' }. If any field is unclear, return an empty string for that field.\n\n{{media url=photoDataUri}}`,
+  model: 'googleai/gemini-2.5-flash'
 });
 
 const extractChequeDataFlow = ai.defineFlow(
@@ -52,4 +53,3 @@ const extractChequeDataFlow = ai.defineFlow(
     return output!;
   }
 );
-
