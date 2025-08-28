@@ -1,12 +1,13 @@
 
+
 export interface Bill {
   id: number;
-  billDate: string;
+  billDate: string; // Stored as 'yyyy-MM-dd' in DB, but received as 'dd/MM/yyyy' from uploads
   billNo: string;
   party: string;
   netAmount: number;
   creditDays: number;
-  recDate: string | null;
+  recDate: string | null; // Stored as 'yyyy-MM-dd' in DB
   interestPaid: 'Yes' | 'No';
   mobile: string;
   companyName: string;
@@ -17,6 +18,8 @@ export interface Bill {
   pes: string;
   meter: string;
   rate: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CalculatedBill extends Bill {
@@ -27,7 +30,7 @@ export interface CalculatedBill extends Bill {
 }
 
 export interface BillTableColumn {
-    id: keyof Omit<CalculatedBill, 'id' | 'status'>;
+    id: keyof Omit<CalculatedBill, 'id' | 'status' | 'created_at' | 'updated_at'>;
     label: string;
     shortLabel: string;
     className: string;
@@ -54,3 +57,5 @@ export const billTableColumns: BillTableColumn[] = [
     { id: 'mobile', label: 'Mobile', shortLabel: 'Mobile', className: 'bg-gradient-to-r from-emerald-600 to-emerald-500' },
     { id: 'interestRate', label: 'Interest Rate', shortLabel: 'Int. Rate', className: 'bg-gradient-to-r from-amber-600 to-amber-500' },
 ];
+
+    

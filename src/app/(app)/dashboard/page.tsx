@@ -2,11 +2,11 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { getCalculatedBills } from '@/lib/data';
+import { getCalculatedBills, clearAllBills, importBillsFromCSV } from '@/lib/data';
 import type { CalculatedBill } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, BarChart, Banknote, AlertTriangle, User, Trash2 } from 'lucide-react';
+import { Upload, Download, BarChart, Banknote, AlertTriangle, User, Trash2, List } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,9 +17,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-
+import { useToast } from '@/hooks/use-toast';
+import { billTableColumns } from '@/lib/types';
+import { format } from 'date-fns';
 
 type Summary = {
   totalEntries: number;
@@ -58,12 +60,6 @@ function calculateSummaries(bills: CalculatedBill[]): { summary: Summary; overdu
   };
 }
 
-const actionButtons = [
-    { label: "Upload", icon: Upload, gradient: "from-teal-500 to-cyan-500" },
-    { label: "Template", icon: Download, gradient: "from-blue-500 to-indigo-500" },
-    { label: "List", icon: Download, gradient: "from-green-500 to-lime-500" },
-];
-
 const partyCardColors = [
   "from-orange-50 to-yellow-50 border-orange-400",
   "from-blue-50 to-indigo-50 border-blue-400",
@@ -74,9 +70,22 @@ const partyCardColors = [
 
 export default function DashboardPage() {
   const router = useRouter();
-  const bills = getCalculatedBills();
+  const { toast } = useToast();
+  const [bills, setBills] = useState<CalculatedBill[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { summary, overdueParties } = calculateSummaries(bills);
   const [isAlertOpen, setAlertOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchBills = async () => {
+      setIsLoading(true);
+      const fetchedBills = await getCalculatedBills();
+      setBills(fetchedBills);
+      setIsLoading(false);
+    };
+    fetchBills();
+  }, []);
 
   const summaryCards = [
     { title: "Total Entries", value: summary.totalEntries.toLocaleString(), icon: BarChart, gradient: "from-blue-500 to-indigo-500" },
@@ -88,17 +97,124 @@ export default function DashboardPage() {
     router.push(`/bill-list?party=${encodeURIComponent(partyName)}`);
   };
 
+  const handleClearData = async () => {
+    try {
+      await clearAllBills();
+      setBills([]);
+      toast({
+        title: 'Data Cleared',
+        description: 'All bill data has been permanently deleted.',
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error Clearing Data',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+    setAlertOpen(false);
+  };
+  
+  const handleDownloadTemplate = () => {
+    const headers = billTableColumns.map(col => col.id).join(',');
+    const blob = new Blob([headers], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.href) {
+      URL.revokeObjectURL(link.href);
+    }
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'bill_import_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadList = () => {
+    if (bills.length === 0) {
+      toast({ title: "No data to export", description: "There are no bills to download."});
+      return;
+    }
+    const headers = billTableColumns.map(col => col.id).join(',');
+    const csvRows = bills.map(bill => {
+        return billTableColumns.map(col => {
+            const value = bill[col.id as keyof CalculatedBill];
+             if (value instanceof Date) {
+                return format(value, 'dd/MM/yyyy');
+            }
+            if (typeof value === 'string' && value.includes(',')) {
+                return `"${value}"`;
+            }
+            return value;
+        }).join(',');
+    });
+
+    const csvString = [headers, ...csvRows].join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', 'bill_list.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const text = e.target?.result;
+        if (typeof text !== 'string') {
+            toast({ title: "File Error", description: "Could not read the file content.", variant: "destructive"});
+            return;
+        }
+        try {
+            const result = await importBillsFromCSV(text);
+            if (result.success) {
+                toast({ title: "Import Successful", description: `${result.count} bills have been imported.`});
+                const fetchedBills = await getCalculatedBills();
+                setBills(fetchedBills); // Refresh the list
+            } else {
+                toast({ title: "Import Failed", description: result.error, variant: "destructive"});
+            }
+        } catch (error: any) {
+             toast({ title: "Import Error", description: error.message, variant: "destructive"});
+        }
+    };
+    reader.readAsText(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
+  };
+
+
+  if (isLoading) {
+    return <div>Loading...</div>
+  }
+
   return (
     <div className="flex flex-col space-y-4 p-0">
-      <h1 className="text-xl font-bold tracking-tight">Dashboard</h1>
 
       <section className="grid grid-cols-4 gap-2">
-        {actionButtons.map(btn => (
-          <Button key={btn.label} className={`text-white font-semibold text-xs h-12 bg-gradient-to-r ${btn.gradient} hover:opacity-90 transition-opacity`}>
-            <btn.icon className="mr-1 h-4 w-4" />
-            {btn.label}
-          </Button>
-        ))}
+        <Button onClick={() => fileInputRef.current?.click()} className={`text-white font-semibold text-xs h-12 bg-gradient-to-r from-teal-500 to-cyan-500 hover:opacity-90 transition-opacity`}>
+            <Upload className="mr-1 h-4 w-4" />
+            Upload
+        </Button>
+        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".csv" />
+
+        <Button onClick={handleDownloadTemplate} className={`text-white font-semibold text-xs h-12 bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 transition-opacity`}>
+            <Download className="mr-1 h-4 w-4" />
+            Template
+        </Button>
+        <Button onClick={handleDownloadList} className={`text-white font-semibold text-xs h-12 bg-gradient-to-r from-green-500 to-lime-500 hover:opacity-90 transition-opacity`}>
+            <List className="mr-1 h-4 w-4" />
+            List
+        </Button>
          <Button onClick={() => setAlertOpen(true)} className="text-white font-semibold text-xs h-12 bg-gradient-to-r from-red-500 to-pink-500 hover:opacity-90 transition-opacity">
             <Trash2 className="mr-1 h-4 w-4" />
             Clear
@@ -124,7 +240,7 @@ export default function DashboardPage() {
       <section className="space-y-2">
         <h2 className="text-sm font-bold tracking-tight">Overdue Parties</h2>
         {overdueParties.length > 0 ? (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {overdueParties.map((party, index) => (
               <Card key={party.party} onClick={() => handlePartyClick(party.party)} className={cn("shadow-md border-0 bg-gradient-to-tr border-l-4 cursor-pointer", partyCardColors[index % partyCardColors.length])}>
                 <CardHeader className="p-4">
@@ -157,17 +273,14 @@ export default function DashboardPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all data.
+              This action cannot be undone. This will permanently delete all bill data from your Supabase table.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
-              onClick={() => {
-                console.log("Removing all data...");
-                setAlertOpen(false);
-              }}
+              onClick={handleClearData}
             >
               Continue
             </AlertDialogAction>
@@ -177,3 +290,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

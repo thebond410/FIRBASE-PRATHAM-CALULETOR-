@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
-import type { CalculatedBill, BillTableColumn } from '@/lib/types';
+import type { CalculatedBill } from '@/lib/types';
 import {
   Table,
   TableBody,
@@ -26,6 +26,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Smartphone } from 'lucide-react';
 import { billTableColumns } from "@/lib/types";
+import { deleteBill, getCalculatedBills } from "@/lib/data";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 type SortKey = keyof CalculatedBill | null;
 
@@ -36,6 +39,8 @@ type ColumnConfig = {
 
 export function BillsTable({ data }: { data: CalculatedBill[] }) {
   const router = useRouter();
+  const { toast } = useToast();
+  const [bills, setBills] = React.useState(data);
   const [sortKey, setSortKey] = React.useState<SortKey>('billDate');
   const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('desc');
   const [billToDelete, setBillToDelete] = React.useState<CalculatedBill | null>(null);
@@ -123,9 +128,22 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     window.open(whatsappUrl, '_blank');
   };
 
+  const handleDelete = async () => {
+    if (!billToDelete) return;
+    const result = await deleteBill(billToDelete.id);
+    if (result.success) {
+        toast({ title: "Bill Deleted", description: "The bill has been successfully deleted." });
+        setBills(bills.filter(b => b.id !== billToDelete.id));
+    } else {
+        toast({ title: "Delete Failed", description: result.error, variant: "destructive" });
+    }
+    setBillToDelete(null);
+  };
+
+
   const sortedData = React.useMemo(() => {
-    if (!sortKey) return data;
-    return [...data].sort((a, b) => {
+    if (!sortKey) return bills;
+    return [...bills].sort((a, b) => {
       const aValue = a[sortKey];
       const bValue = b[sortKey];
 
@@ -136,18 +154,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [data, sortKey, sortOrder]);
-
-  const getColumnStyle = (isFrozen: boolean, index: number): React.CSSProperties => {
-    if (!isFrozen) return {};
-    
-    const leftOffset = index * 100; // Adjust this value based on your column widths
-
-    return {
-        left: `${leftOffset}px`,
-        zIndex: 20
-    };
-  };
+  }, [bills, sortKey, sortOrder]);
 
   const visibleColumns = billTableColumns.filter(col => columnConfig.visibleColumns.includes(col.id));
 
@@ -165,6 +172,17 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     });
     return styles;
   }, [columnConfig, visibleColumns]);
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return format(date, 'dd/MM/yy');
+    } catch (e) {
+      return dateString; // fallback to original string if parsing fails
+    }
+  }
+
 
   return (
     <>
@@ -200,14 +218,19 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                     <TableRow 
                         key={bill.id} 
                         onClick={() => handleRowClick(bill.id)}
-                        className={cn('font-bold cursor-pointer', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : 'bg-card')}
+                        className={cn('font-bold cursor-pointer my-2', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : 'bg-card')}
                     >
                     <TableCell className="font-sans px-1 sticky left-0 z-10 bg-inherit w-[45px]">
                         {index + 1}
                     </TableCell>
                     {visibleColumns.map(col => {
                          const isFrozen = columnConfig.frozenColumns.includes(col.id);
-                         const cellValue = bill[col.id as keyof CalculatedBill];
+                         let cellValue = bill[col.id as keyof CalculatedBill];
+
+                         if (col.id === 'billDate' || col.id === 'recDate') {
+                            cellValue = formatDate(cellValue as string | null);
+                         }
+
                          return (
                             <TableCell
                                 key={col.id}
@@ -253,10 +276,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => {
-                console.log("Deleting bill:", billToDelete?.id);
-                setBillToDelete(null);
-              }}
+              onClick={handleDelete}
             >
               Delete
             </AlertDialogAction>
@@ -266,3 +286,5 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     </>
   );
 }
+
+    

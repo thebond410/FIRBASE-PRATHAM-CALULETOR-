@@ -14,17 +14,22 @@ import { differenceInDays, parse, format } from "date-fns";
 import { Camera, Loader2, Save, Upload } from "lucide-react";
 import { scanCheque } from "@/app/actions";
 import { Label } from "@/components/ui/label";
+import { saveBill } from "@/lib/data";
+import { useRouter } from "next/navigation";
+
 
 const formSchema = z.object({
+  id: z.number().optional(),
   billDate: z.string().min(1, "Bill date is required"),
   billNo: z.string().min(1, "Bill number is required"),
   party: z.string().min(1, "Party name is required"),
   companyName: z.string(),
   netAmount: z.coerce.number().min(0, "Net amount must be positive"),
   creditDays: z.coerce.number().int().min(0, "Credit days must be a positive integer"),
-  recDate: z.string(),
+  recDate: z.string().nullable(),
   recAmount: z.coerce.number().min(0),
   interestRate: z.coerce.number().min(0),
+  interestPaid: z.enum(['Yes', 'No']),
   chequeNumber: z.string(),
   bankName: z.string(),
   pes: z.string(),
@@ -35,7 +40,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-const parseDate = (dateStr: string): Date | null => {
+const parseDate = (dateStr: string | null | undefined): Date | null => {
     if (!dateStr) return null;
     const formats = ['yyyy-MM-dd', 'dd/MM/yyyy'];
     for (const fmt of formats) {
@@ -45,23 +50,33 @@ const parseDate = (dateStr: string): Date | null => {
     return null;
 }
 
+const formatDateForInput = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return "";
+    const parsed = parseDate(dateStr);
+    return parsed ? format(parsed, 'yyyy-MM-dd') : "";
+}
+
 export function CalculatorForm({ bill }: { bill?: Bill }) {
+  const router = useRouter();
   const { toast } = useToast();
   const [isScanning, setIsScanning] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      billDate: bill?.billDate ? format(parse(bill.billDate, 'dd/MM/yyyy', new Date()), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      id: bill?.id,
+      billDate: formatDateForInput(bill?.billDate) || format(new Date(), 'yyyy-MM-dd'),
       billNo: bill?.billNo || "",
       party: bill?.party || "",
       companyName: bill?.companyName || "",
       netAmount: bill?.netAmount || 0,
       creditDays: bill?.creditDays || 30,
-      recDate: bill?.recDate ? format(parse(bill.recDate, 'dd/MM/yyyy', new Date()), 'yyyy-MM-dd') : "",
+      recDate: formatDateForInput(bill?.recDate),
       recAmount: bill?.recAmount || 0,
       interestRate: bill?.interestRate || 18,
+      interestPaid: bill?.interestPaid || 'No',
       chequeNumber: bill?.chequeNumber || "",
       bankName: bill?.bankName || "",
       pes: bill?.pes || "",
@@ -141,15 +156,28 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   };
 
 
-  function onSubmit(values: FormValues) {
-    console.log(values);
-    toast({
-      title: "Bill Saved",
-      description: "Bill details have been successfully saved.",
-    });
+  async function onSubmit(values: FormValues) {
+    setIsSaving(true);
+    // @ts-ignore
+    const result = await saveBill(values);
+    setIsSaving(false);
+
+    if (result.success) {
+      toast({
+        title: "Bill Saved",
+        description: "Bill details have been successfully saved.",
+      });
+      router.push('/bill-list');
+    } else {
+       toast({
+        title: "Save Failed",
+        description: result.error,
+        variant: "destructive"
+      });
+    }
   }
   
-  const FormFieldInput = ({ name, label }: { name: keyof FormValues, label: string }) => (
+  const FormFieldInput = ({ name, label, type = "text" }: { name: keyof FormValues, label: string, type?: string }) => (
     <FormField
         control={form.control}
         name={name}
@@ -157,7 +185,8 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <FormItem>
                 <FormLabel>{label}</FormLabel>
                 <FormControl>
-                    <Input {...field} type={name.includes('Date') ? 'date' : 'text'} className="h-9"/>
+                    {/* @ts-ignore */}
+                    <Input {...field} type={type} className="h-9" value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
             </FormItem>
@@ -182,21 +211,37 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-4 p-1">
-            <FormFieldInput name="billDate" label="Bill Date" />
+            <FormFieldInput name="billDate" label="Bill Date" type="date" />
             <FormFieldInput name="billNo" label="Bill No" />
             <FormFieldInput name="party" label="Party Name" />
             <FormFieldInput name="companyName" label="Company Name" />
             <FormFieldInput name="mobile" label="Mobile No" />
-            <FormFieldInput name="netAmount" label="Net Amount" />
-            <FormFieldInput name="creditDays" label="Credit Days" />
-            <FormFieldInput name="recDate" label="Receipt Date" />
-            <FormFieldInput name="recAmount" label="Receipt Amount" />
+            <FormFieldInput name="netAmount" label="Net Amount" type="number"/>
+            <FormFieldInput name="creditDays" label="Credit Days" type="number"/>
+            <FormFieldInput name="recDate" label="Receipt Date" type="date"/>
+            <FormFieldInput name="recAmount" label="Receipt Amount" type="number"/>
             <FormFieldInput name="chequeNumber" label="Cheque No" />
             <FormFieldInput name="bankName" label="Bank Name" />
-            <FormFieldInput name="interestRate" label="Interest Rate (%)" />
+            <FormFieldInput name="interestRate" label="Interest Rate (%)" type="number"/>
+            <FormField
+                control={form.control}
+                name="interestPaid"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Interest Paid</FormLabel>
+                        <FormControl>
+                            <select {...field} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm">
+                                <option value="No">No</option>
+                                <option value="Yes">Yes</option>
+                            </select>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
             <FormFieldInput name="pes" label="PES" />
             <FormFieldInput name="meter" label="Meter" />
-            <FormFieldInput name="rate" label="Rate" />
+            <FormFieldInput name="rate" label="Rate" type="number"/>
             <div className="space-y-2">
                 <Label>Total Days</Label>
                 <Input value={totalDays} readOnly className="font-bold bg-muted h-9" />
@@ -212,12 +257,14 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         </div>
 
         <div className="flex justify-end p-1">
-          <Button type="submit" size="lg" className="font-bold">
-            <Save className="mr-2 h-4 w-4"/>
-            Save Bill
+          <Button type="submit" size="lg" className="font-bold" disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
+            {bill?.id ? 'Update Bill' : 'Save Bill'}
           </Button>
         </div>
       </form>
     </Form>
   );
 }
+
+    
