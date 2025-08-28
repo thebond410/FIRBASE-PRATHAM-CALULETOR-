@@ -80,10 +80,10 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col space-y-4 p-4">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
 
-      <section className="grid grid-cols-4">
+      <section className="grid grid-cols-4 gap-2">
         {actionButtons.map(btn => (
           <Button key={btn.label} className={`text-white font-semibold text-xs h-12 bg-gradient-to-r ${btn.gradient} hover:opacity-90 transition-opacity`}>
             <btn.icon className="mr-1 h-4 w-4" />
@@ -96,10 +96,10 @@ export default function DashboardPage() {
         </Button>
       </section>
 
-      <section className="grid md:grid-cols-3">
+      <section className="grid md:grid-cols-3 gap-4">
         {summaryCards.map((card) => (
-          <Card key={card.title} className="overflow-hidden border-0 shadow-none rounded-none">
-            <div className={`bg-gradient-to-br ${card.gradient}`}>
+          <Card key={card.title} className="overflow-hidden border-0 shadow-lg">
+            <div className={`bg-gradient-to-br ${card.gradient} p-6`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
                 <CardTitle className="text-sm font-medium text-white">{card.title}</CardTitle>
                 <card.icon className="h-5 w-5 text-white/80" />
@@ -112,19 +112,19 @@ export default function DashboardPage() {
         ))}
       </section>
 
-      <section>
+      <section className="space-y-2">
         <h2 className="text-sm font-bold tracking-tight">Overdue Parties</h2>
         {overdueParties.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {overdueParties.map((party) => (
-              <Card key={party.party} onClick={() => handlePartyClick(party.party)} className="shadow-none border-0 rounded-none bg-gradient-to-tr from-orange-50 to-yellow-50 border-l-4 border-orange-400 cursor-pointer">
-                <CardHeader>
+              <Card key={party.party} onClick={() => handlePartyClick(party.party)} className="shadow-md border-0 bg-gradient-to-tr from-orange-50 to-yellow-50 border-l-4 border-orange-400 cursor-pointer">
+                <CardHeader className="p-4">
                   <CardTitle className="flex items-center gap-2 text-base">
                     <User className="h-5 w-5 text-orange-600" />
                     {party.party}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 text-sm pt-0">
+                <CardContent className="grid grid-cols-2 text-sm p-4 pt-0">
                   <div>
                     <p className="text-muted-foreground text-xs">Overdue Bills</p>
                     <p className="font-bold text-md">{party.billCount}</p>
@@ -138,7 +138,7 @@ export default function DashboardPage() {
             ))}
           </div>
         ) : (
-            <Card className="flex items-center justify-center border-dashed">
+            <Card className="flex items-center justify-center border-dashed p-6">
                 <p className="text-muted-foreground">No overdue parties. Great job!</p>
             </Card>
         )}

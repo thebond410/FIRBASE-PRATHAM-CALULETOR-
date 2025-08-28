@@ -120,8 +120,8 @@ export function SettingsForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-0">
-        <Card className="border-0 shadow-none rounded-none">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Card className="shadow-md">
           <CardHeader>
             <div className="flex items-center gap-3">
                 <KeyRound className="h-6 w-6 text-primary"/>
@@ -131,7 +131,7 @@ export function SettingsForm() {
                 </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <FormField
               control={form.control}
               name="apiKey"
@@ -166,7 +166,7 @@ export function SettingsForm() {
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-none rounded-none">
+        <Card className="shadow-md">
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <Database className="h-6 w-6 text-primary"/>
@@ -176,7 +176,7 @@ export function SettingsForm() {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
                 <FormField
                     control={form.control}
                     name="supabaseUrl"
@@ -221,7 +221,7 @@ export function SettingsForm() {
              </CardFooter>
         </Card>
 
-        <Card className="border-0 shadow-none rounded-none">
+        <Card className="shadow-md">
             <CardHeader>
                 <div className="flex items-center gap-3">
                     <MessageSquare className="h-6 w-6 text-primary"/>
@@ -231,7 +231,7 @@ export function SettingsForm() {
                     </div>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
                  <FormField
                     control={form.control}
                     name="noRecDateTemplate"
@@ -268,7 +268,7 @@ export function SettingsForm() {
             </CardContent>
         </Card>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-4">
             <Button type="submit" size="lg">Save All Settings</Button>
         </div>
       </form>
