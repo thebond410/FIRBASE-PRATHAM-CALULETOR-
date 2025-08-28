@@ -6,7 +6,7 @@ const supabaseUrl = 'YOUR_SUPABASE_URL_HERE';
 const supabaseKey = 'YOUR_SUPABASE_ANON_KEY_HERE';
 
 if (supabaseUrl === 'YOUR_SUPABASE_URL_HERE' || supabaseKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
-    console.warn("Supabase credentials are placeholders. Please replace them in src/lib/supabase.ts");
+    console.warn("Supabase credentials are placeholders. Please replace them in src/lib/supabase.ts for the app to function.");
 }
 
 let supabaseClient: SupabaseClient | null = null;
@@ -15,8 +15,7 @@ let supabaseServerClient: SupabaseClient | null = null;
 
 // This function is for CLIENT-SIDE USAGE ONLY.
 export const getSupabaseClient = (): SupabaseClient | null => {
-    if (!supabaseUrl || !supabaseKey) {
-        console.error("Supabase URL or Key is missing.");
+    if (!supabaseUrl || !supabaseKey || supabaseUrl === 'YOUR_SUPABASE_URL_HERE' || supabaseKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
         return null;
     }
     
@@ -30,8 +29,7 @@ export const getSupabaseClient = (): SupabaseClient | null => {
 
 // This function is for SERVER-SIDE USAGE ONLY.
 export const getSupabaseServerClient = (): SupabaseClient | null => {
-     if (!supabaseUrl || !supabaseKey) {
-        console.error("Supabase URL or Key is missing.");
+     if (!supabaseUrl || !supabaseKey || supabaseUrl === 'YOUR_SUPABASE_URL_HERE' || supabaseKey === 'YOUR_SUPABASE_ANON_KEY_HERE') {
         return null;
     }
     
