@@ -259,6 +259,13 @@ export default function DashboardPage() {
       </div>
     );
   }
+  
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return "";
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  }
+
 
   return (
     <div className="flex flex-col space-y-4 p-0">
@@ -307,9 +314,9 @@ export default function DashboardPage() {
             {overdueParties.map((party, index) => (
               <Card key={party.party} onClick={() => handlePartyClick(party.party)} className={cn("shadow-md border-0 bg-gradient-to-tr border-l-4 cursor-pointer", partyCardColors[index % partyCardColors.length])}>
                 <CardHeader className="p-4">
-                  <CardTitle className="flex items-center gap-2 text-base">
+                  <CardTitle className="flex items-center gap-2 text-[12px] truncate">
                     <User className="h-5 w-5" />
-                    {party.party}
+                    {truncateText(party.party, 12)}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 text-sm p-4 pt-0">
@@ -319,7 +326,7 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs">Total Amount</p>
-                    <p className="font-bold text-md">₹{party.totalAmount.toLocaleString('en-IN')}</p>
+                    <p className="font-bold text-[11px]">₹{party.totalAmount.toLocaleString('en-IN')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -353,3 +360,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
