@@ -36,12 +36,14 @@ export const calculateBillDetails = (bill: Bill): CalculatedBill => {
 
   let totalDays = 0;
   if (billDate) {
-    totalDays = differenceInDays(recDate || today, billDate);
+    const endDate = recDate || today;
+    totalDays = differenceInDays(endDate, billDate);
   }
   
   const interestDays = Math.max(0, totalDays - bill.creditDays);
   
-  const interestAmount = (bill.netAmount * (bill.interestRate / 100) / 365) * interestDays;
+  // Updated interest calculation as per request
+  const interestAmount = bill.netAmount * 0.0004765 * interestDays;
 
   let status: CalculatedBill['status'] = 'pending';
   if (recDate) {
@@ -58,7 +60,7 @@ export const calculateBillDetails = (bill: Bill): CalculatedBill => {
     ...bill,
     totalDays,
     interestDays,
-    interestAmount: Math.round(interestAmount),
+    interestAmount: interestAmount, // Keep it as a float, format in component
     status,
   };
 };

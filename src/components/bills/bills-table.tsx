@@ -26,11 +26,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Smartphone } from 'lucide-react';
 import { billTableColumns } from "@/lib/types";
-import { deleteBill, getCalculatedBills } from "@/lib/data";
+import { deleteBill } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 type SortKey = keyof CalculatedBill | null;
+type SortConfig = {
+    key: SortKey;
+    order: 'asc' | 'desc';
+}
 
 type ColumnConfig = {
   visibleColumns: string[];
@@ -41,8 +45,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
   const router = useRouter();
   const { toast } = useToast();
   const [bills, setBills] = React.useState(data);
-  const [sortKey, setSortKey] = React.useState<SortKey>('billDate');
-  const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('desc');
+  const [sortConfig, setSortConfig] = React.useState<SortConfig>({ key: 'billDate', order: 'desc' });
   const [billToDelete, setBillToDelete] = React.useState<CalculatedBill | null>(null);
   const [selectedBillId, setSelectedBillId] = React.useState<number | null>(null);
   const [whatsappTemplates, setWhatsappTemplates] = React.useState({
@@ -56,6 +59,10 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
       frozenColumns: [],
   });
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    setBills(data);
+  }, [data]);
 
   React.useEffect(() => {
     try {
@@ -76,6 +83,10 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
         if (storedColumnConfig) {
             setColumnConfig(JSON.parse(storedColumnConfig));
         }
+        const storedSortConfig = localStorage.getItem("billListSortConfig");
+        if (storedSortConfig) {
+            setSortConfig(JSON.parse(storedSortConfig));
+        }
     } catch (error) {
         console.error("Could not access localStorage", error);
     }
@@ -92,11 +103,16 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
 
 
   const handleSort = (key: keyof CalculatedBill) => {
-    if (sortKey === key) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortKey(key);
-      setSortOrder('asc');
+    let newOrder: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.order === 'asc') {
+        newOrder = 'desc';
+    }
+    const newSortConfig = { key, order: newOrder };
+    setSortConfig(newSortConfig);
+     try {
+        localStorage.setItem("billListSortConfig", JSON.stringify(newSortConfig));
+    } catch (error) {
+        console.error("Could not write sort config to localStorage", error);
     }
   };
 
@@ -117,12 +133,12 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
       .replace(/\[Netamount\]/g, bill.netAmount.toLocaleString('en-IN'))
       .replace(/\[Total Days\]/g, bill.totalDays.toString())
       .replace(/\[interest days\]/g, bill.interestDays.toString())
-      .replace(/\[Interest amt\]/g, bill.interestAmount.toLocaleString('en-IN'))
+      .replace(/\[Interest amt\]/g, bill.interestAmount.toFixed(2))
       .replace(/\[Company\]/g, bill.companyName)
       .replace(/\[Recamount\]/g, bill.recAmount.toLocaleString('en-IN'))
-      .replace(/\[Rec Date\]/g, bill.recDate || '')
+      .replace(/\[Rec Date\]/g, bill.recDate ? format(new Date(bill.recDate), 'dd/MM/yy') : '')
       .replace(/\[Interest Days\]/g, bill.interestDays.toString())
-      .replace(/\[Interest Amount\]/g, bill.interestAmount.toLocaleString('en-IN'));
+      .replace(/\[Interest Amount\]/g, bill.interestAmount.toFixed(2));
       
     const whatsappUrl = `https://wa.me/${bill.mobile}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -142,19 +158,28 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
 
 
   const sortedData = React.useMemo(() => {
-    if (!sortKey) return bills;
+    if (!sortConfig.key) return bills;
     return [...bills].sort((a, b) => {
-      const aValue = a[sortKey];
-      const bValue = b[sortKey];
+      const aValue = a[sortConfig.key!];
+      const bValue = b[sortConfig.key!];
 
       if (aValue === null || aValue === undefined) return 1;
       if (bValue === null || bValue === undefined) return -1;
       
-      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      // Handle date sorting correctly
+      if (sortConfig.key === 'billDate' || sortConfig.key === 'recDate') {
+        const dateA = new Date(aValue as string).getTime();
+        const dateB = new Date(bValue as string).getTime();
+        if (dateA < dateB) return sortConfig.order === 'asc' ? -1 : 1;
+        if (dateA > dateB) return sortConfig.order === 'asc' ? 1 : -1;
+        return 0;
+      }
+      
+      if (aValue < bValue) return sortConfig.order === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.order === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [bills, sortKey, sortOrder]);
+  }, [bills, sortConfig]);
 
   const visibleColumns = billTableColumns.filter(col => columnConfig.visibleColumns.includes(col.id));
 
@@ -181,6 +206,23 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     } catch (e) {
       return dateString; // fallback to original string if parsing fails
     }
+  }
+
+  const getRowClass = (bill: CalculatedBill) => {
+    if (bill.interestPaid === 'Yes') {
+      return 'bg-green-100 dark:bg-green-900/30';
+    }
+    if (bill.recDate && bill.interestPaid === 'No') {
+      return 'bg-blue-100 dark:bg-blue-900/30';
+    }
+    if (bill.totalDays > bill.creditDays) {
+      return 'bg-red-100 dark:bg-red-900/30';
+    }
+    return 'bg-card';
+  };
+
+  const formatTotalDays = (days: number) => {
+    return String(days).padStart(3, '0');
   }
 
 
@@ -214,21 +256,27 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {sortedData.map((bill, index) => (
+                {sortedData.map((bill, index) => {
+                    const rowClass = getRowClass(bill);
+                    return (
                     <TableRow 
                         key={bill.id} 
                         onClick={() => handleRowClick(bill.id)}
-                        className={cn('font-bold cursor-pointer my-2', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : 'bg-card')}
+                        className={cn('font-bold cursor-pointer my-2', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}
                     >
-                    <TableCell className="font-sans px-1 sticky left-0 z-10 bg-inherit w-[45px]">
+                    <TableCell className={cn("font-sans px-1 sticky left-0 z-10 w-[45px]", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}>
                         {index + 1}
                     </TableCell>
                     {visibleColumns.map(col => {
                          const isFrozen = columnConfig.frozenColumns.includes(col.id);
-                         let cellValue = bill[col.id as keyof CalculatedBill];
+                         let cellValue: any = bill[col.id as keyof CalculatedBill];
 
                          if (col.id === 'billDate' || col.id === 'recDate') {
                             cellValue = formatDate(cellValue as string | null);
+                         } else if (col.id === 'totalDays') {
+                            cellValue = formatTotalDays(cellValue as number);
+                         } else if (col.id === 'interestAmount') {
+                            cellValue = (cellValue as number).toFixed(2);
                          }
 
                          return (
@@ -236,16 +284,20 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 key={col.id}
                                 style={isFrozen ? frozenColumnStyles[col.id] : {}}
                                 className={cn(
-                                    'font-bold text-primary/80 px-1 whitespace-nowrap',
-                                    isFrozen && 'sticky z-10 bg-inherit text-purple-800 dark:text-purple-300'
+                                    'font-bold px-1 whitespace-nowrap',
+                                    col.id === 'totalDays' ? 'text-red-600 dark:text-red-400' : 'text-primary/80',
+                                    isFrozen && 'sticky z-10 text-purple-800 dark:text-purple-300',
+                                    isFrozen && (selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)
                                 )}
                             >
-                               {col.id === 'netAmount' || col.id === 'interestAmount' || col.id === 'recAmount' || col.id === 'rate' ? '₹' : ''}
-                               {typeof cellValue === 'number' ? cellValue.toLocaleString('en-IN') : cellValue}
+                               {col.id === 'netAmount' || col.id === 'recAmount' || col.id === 'rate' ? '₹' : ''}
+                               {typeof cellValue === 'number' && col.id !== 'totalDays' ? cellValue.toLocaleString('en-IN') : cellValue}
+                               {col.id === 'interestAmount' && '₹'}
+
                             </TableCell>
                          );
                     })}
-                    <TableCell className="text-right px-1 sticky right-0 z-10 bg-inherit">
+                    <TableCell className={cn("text-right px-1 sticky right-0 z-10", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}>
                         <div className="flex items-center justify-end gap-0">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => {e.stopPropagation(); router.push(`/calculator/${bill.id}`)}}>
                                 <Pencil className="h-4 w-4 text-muted-foreground" />
@@ -259,7 +311,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                         </div>
                     </TableCell>
                     </TableRow>
-                ))}
+                )})}
                 </TableBody>
             </Table>
         </div>
@@ -286,5 +338,3 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     </>
   );
 }
-
-    

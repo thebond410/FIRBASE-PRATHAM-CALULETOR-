@@ -255,16 +255,16 @@ export default function DashboardPage() {
         </Button>
       </section>
 
-      <section className="grid md:grid-cols-3 gap-4">
+      <section className="grid grid-cols-3 gap-4">
         {summaryCards.map((card) => (
           <Card key={card.title} className="overflow-hidden border-0 shadow-lg">
-            <div className={`bg-gradient-to-br ${card.gradient} p-4`}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-                <CardTitle className="text-sm font-medium text-white">{card.title}</CardTitle>
-                <card.icon className="h-5 w-5 text-white/80" />
+            <div className={`bg-gradient-to-br ${card.gradient} p-2 md:p-4`}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2 p-0">
+                <CardTitle className="text-[10px] md:text-sm font-medium text-white">{card.title}</CardTitle>
+                <card.icon className="h-4 w-4 md:h-5 md:w-5 text-white/80" />
               </CardHeader>
               <CardContent className="p-0">
-                <div className="text-2xl font-bold text-white">{card.value}</div>
+                <div className="text-base md:text-2xl font-bold text-white">{card.value}</div>
               </CardContent>
             </div>
           </Card>
