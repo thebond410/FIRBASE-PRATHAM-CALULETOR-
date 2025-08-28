@@ -27,6 +27,9 @@ const formSchema = z.object({
   interestRate: z.coerce.number().min(0),
   chequeNumber: z.string(),
   bankName: z.string(),
+  pes: z.string(),
+  meter: z.string(),
+  rate: z.coerce.number().min(0),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -60,6 +63,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       interestRate: bill?.interestRate || 18,
       chequeNumber: bill?.chequeNumber || "",
       bankName: bill?.bankName || "",
+      pes: bill?.pes || "",
+      meter: bill?.meter || "",
+      rate: bill?.rate || 0,
     },
   });
 
@@ -159,7 +165,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
         <div className="flex justify-end gap-2">
             <Button type="button" onClick={() => fileInputRef.current?.click()} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
                 {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
@@ -185,6 +191,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <FormFieldInput name="chequeNumber" label="Cheque No" />
             <FormFieldInput name="bankName" label="Bank Name" />
             <FormFieldInput name="interestRate" label="Interest Rate (%)" />
+            <FormFieldInput name="pes" label="PES" />
+            <FormFieldInput name="meter" label="Meter" />
+            <FormFieldInput name="rate" label="Rate" />
             <div className="space-y-2">
                 <Label>Total Days</Label>
                 <Input value={totalDays} readOnly className="font-bold bg-muted h-9" />

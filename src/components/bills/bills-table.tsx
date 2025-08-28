@@ -50,6 +50,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
       visibleColumns: billTableColumns.map(c => c.id),
       frozenColumns: [],
   });
+  const tableContainerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     try {
@@ -168,9 +169,9 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
   return (
     <>
       <div className="rounded-lg bg-card" style={{ fontSize: `${fontSize}px`}}>
-        <div className="w-full overflow-x-auto">
+        <div ref={tableContainerRef} className="w-full overflow-x-auto">
             <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-30">
                 <TableRow className="bg-primary hover:bg-primary/90">
                     <TableHead className="w-[45px] px-1 text-white font-bold sticky left-0 z-20 bg-primary h-auto py-0">Sr.</TableHead>
                     {visibleColumns.map((col) => {
@@ -206,6 +207,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                     </TableCell>
                     {visibleColumns.map(col => {
                          const isFrozen = columnConfig.frozenColumns.includes(col.id);
+                         const cellValue = bill[col.id as keyof CalculatedBill];
                          return (
                             <TableCell
                                 key={col.id}
@@ -215,8 +217,8 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                     isFrozen && 'sticky z-10 bg-inherit text-purple-800 dark:text-purple-300'
                                 )}
                             >
-                               {col.id === 'netAmount' || col.id === 'interestAmount' ? '₹' : ''}
-                               {bill[col.id as keyof CalculatedBill]?.toLocaleString('en-IN')}
+                               {col.id === 'netAmount' || col.id === 'interestAmount' || col.id === 'recAmount' || col.id === 'rate' ? '₹' : ''}
+                               {typeof cellValue === 'number' ? cellValue.toLocaleString('en-IN') : cellValue}
                             </TableCell>
                          );
                     })}
@@ -264,5 +266,3 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     </>
   );
 }
-
-    
