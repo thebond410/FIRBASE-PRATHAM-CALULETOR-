@@ -41,12 +41,9 @@ export const getSupabaseServerClient = () => {
 
     if (supabaseUrl && supabaseKey) {
         return createClient(supabaseUrl, supabaseKey, {
-            // It's good practice to disable session persistence for server-side clients
-            // as they are typically used for one-off requests.
             auth: { persistSession: false }
         });
     }
     
-    console.warn("Supabase server credentials not found in environment variables.");
     return null;
 }

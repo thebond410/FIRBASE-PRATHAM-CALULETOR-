@@ -10,7 +10,6 @@ import { calculateBillDetails, parseDate } from './utils';
 export async function getCalculatedBills(): Promise<CalculatedBill[]> {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
-      console.log("Supabase not configured for server, returning empty array.");
       return [];
   }
   
@@ -92,7 +91,7 @@ export async function saveBill(bill: Omit<Bill, 'id' | 'created_at' | 'updated_a
     if (id) {
         const { error: updateError } = await supabase
             .from('bills')
-            .update({ ...billToSave, updated_at: new Date().toISOString() })
+            .update({ ...billToSave })
             .eq('id', id);
         error = updateError;
     } else {
