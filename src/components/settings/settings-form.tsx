@@ -10,11 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, XCircle, Database, FileText, MessageSquare, Type, Columns, Pin, Copy } from "lucide-react";
+import { KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, XCircle, Database, FileText, MessageSquare, Type, Columns, Pin, Copy, RefreshCw } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { billTableColumns, BillTableColumn } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { getSupabaseClient } from "@/lib/supabase";
 
 const formSchema = z.object({
   apiKey: z.string().min(1, "API Key is required."),
@@ -39,7 +40,8 @@ const defaultTemplates = {
 
 const placeholders = "[Party], [Bill No], [Bill Date], [Netamount], [Total Days], [interest days], [Interest amt], [Company], [Recamount], [Rec Date], [Interest Days], [Interest Amount]";
 
-const sqlScript = `
+const sqlScripts = {
+    bills: `
 CREATE TABLE bills (
     id SERIAL PRIMARY KEY,
     "billDate" DATE NOT NULL,
@@ -63,15 +65,37 @@ CREATE TABLE bills (
 );
 
 -- Note: Column names are quoted to preserve casing, which is good practice for Supabase.
-`.trim();
+`.trim(),
+    settings: `
+CREATE TABLE settings (
+  id BIGINT PRIMARY KEY,
+  api_key TEXT,
+  no_rec_date_template TEXT,
+  pending_interest_template TEXT,
+  payment_thanks_template TEXT,
+  bill_list_font_size INT,
+  visible_columns TEXT[],
+  frozen_columns TEXT[],
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
 
+-- RLS (Row Level Security) should be enabled for this table.
+-- For a single-user app, you could use a policy like:
+-- CREATE POLICY "Allow authenticated users" ON settings FOR ALL
+-- USING (auth.role() = 'authenticated');
+--
+-- For this simple app, we will use a single row with id=1.
+INSERT INTO settings (id) values (1);
+`.trim()
+}
 
 export function SettingsForm() {
   const { toast } = useToast();
   const [showApiKey, setShowApiKey] = useState(false);
   const [showSupabaseKey, setShowSupabaseKey] = useState(false);
   const [apiStatus, setApiStatus] = useState<ApiStatus>("unconfigured");
-  const [showSql, setShowSql] = useState(false);
+  const [showSql, setShowSql] = useState<'bills' | 'settings' | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const defaultVisibleColumns = useMemo(() => billTableColumns.map(c => c.id), []);
 
@@ -92,7 +116,7 @@ export function SettingsForm() {
 
   const watchedVisibleColumns = form.watch("visibleColumns");
 
-  useEffect(() => {
+  const loadSettingsFromLocalStorage = () => {
     try {
       const storedKey = localStorage.getItem("gemini_api_key");
       if (storedKey) {
@@ -131,10 +155,52 @@ export function SettingsForm() {
     } catch (error) {
         console.error("Could not access localStorage", error)
     }
+  }
+
+  useEffect(() => {
+    loadSettingsFromLocalStorage();
   }, [form, defaultVisibleColumns]);
 
-  function onSubmit(values: FormValues) {
+
+  const loadSettingsFromSupabase = async () => {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        toast({ title: "Supabase not configured", description: "Please configure Supabase URL and Key first.", variant: "destructive" });
+        return;
+      }
+      setIsSyncing(true);
+      try {
+        const { data, error } = await supabase
+            .from('settings')
+            .select('*')
+            .eq('id', 1)
+            .single();
+
+        if (error) throw error;
+
+        if (data) {
+            form.setValue("apiKey", data.api_key || "");
+            form.setValue("noRecDateTemplate", data.no_rec_date_template || defaultTemplates.noRecDate);
+            form.setValue("pendingInterestTemplate", data.pending_interest_template || defaultTemplates.pendingInterest);
+            form.setValue("paymentThanksTemplate", data.payment_thanks_template || defaultTemplates.paymentThanks);
+            form.setValue("billListFontSize", data.bill_list_font_size || 12);
+            form.setValue("visibleColumns", data.visible_columns || defaultVisibleColumns);
+            form.setValue("frozenColumns", data.frozen_columns || []);
+            onSubmit(form.getValues(), false); // Save to local storage after fetching
+            toast({ title: "Settings Loaded", description: "Successfully loaded settings from Supabase." });
+        }
+      } catch (error: any) {
+        console.error("Error loading settings from Supabase:", error);
+        toast({ title: "Load Failed", description: error.message, variant: "destructive" });
+      } finally {
+        setIsSyncing(false);
+      }
+  };
+
+
+  async function onSubmit(values: FormValues, saveToSupabase = true) {
     try {
+      // Always save to localStorage first
       localStorage.setItem("gemini_api_key", values.apiKey);
       if(values.supabaseUrl) localStorage.setItem("supabase_url", values.supabaseUrl);
       if(values.supabaseKey) localStorage.setItem("supabase_key", values.supabaseKey);
@@ -153,13 +219,43 @@ export function SettingsForm() {
         frozenColumns: values.frozenColumns,
       };
       localStorage.setItem("billListColumnConfig", JSON.stringify(columnConfig));
-
-
       setApiStatus("success");
-      toast({
-        title: "Settings Saved",
-        description: "Your settings have been successfully saved. Refresh the Bill List to see changes.",
-      });
+
+      if (saveToSupabase) {
+        const supabase = getSupabaseClient();
+         if (supabase) {
+            setIsSyncing(true);
+            try {
+                const { error } = await supabase
+                    .from('settings')
+                    .update({ 
+                        api_key: values.apiKey,
+                        no_rec_date_template: values.noRecDateTemplate,
+                        pending_interest_template: values.pendingInterestTemplate,
+                        payment_thanks_template: values.paymentThanksTemplate,
+                        bill_list_font_size: values.billListFontSize,
+                        visible_columns: values.visibleColumns,
+                        frozen_columns: values.frozenColumns,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', 1);
+
+                if (error) throw error;
+                toast({ title: "Settings Saved", description: "Your settings have been saved locally and to Supabase." });
+
+            } catch (error: any) {
+                console.error("Error saving settings to Supabase:", error);
+                toast({ title: "Supabase Save Failed", description: error.message, variant: "destructive" });
+            } finally {
+                setIsSyncing(false);
+            }
+        } else {
+             toast({ title: "Settings Saved Locally", description: "Your settings have been saved locally. Configure Supabase to save them to the cloud." });
+        }
+      } else {
+        toast({ title: "Settings Saved Locally", description: "Settings have been updated locally." });
+      }
+
     } catch (error) {
         console.error("Could not access localStorage", error);
         setApiStatus("failed");
@@ -171,9 +267,9 @@ export function SettingsForm() {
     }
   }
 
-  const handleCopySql = () => {
-    navigator.clipboard.writeText(sqlScript);
-    toast({ title: "Copied!", description: "SQL script copied to clipboard." });
+  const handleCopySql = (script: 'bills' | 'settings') => {
+    navigator.clipboard.writeText(sqlScripts[script]);
+    toast({ title: "Copied!", description: `SQL script for ${script} table copied to clipboard.` });
   };
 
   const statusInfo = {
@@ -360,7 +456,7 @@ export function SettingsForm() {
                     <Database className="h-6 w-6 text-primary"/>
                     <div>
                         <CardTitle className="text-sm font-bold">Supabase Configuration</CardTitle>
-                        <CardDescription>Enter your Supabase URL and Key to save data.</CardDescription>
+                        <CardDescription>Enter your Supabase URL and Key to save data. Settings can be synced with the cloud.</CardDescription>
                     </div>
                 </div>
             </CardHeader>
@@ -371,7 +467,7 @@ export function SettingsForm() {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel className="font-bold text-sm">Supabase URL</FormLabel>
-                            <FormControl><Input placeholder="https://&lt;project-ref&gt;.supabase.co" {...field} /></FormControl>
+                            <FormControl><Input placeholder="https://<project-ref>.supabase.co" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -403,16 +499,27 @@ export function SettingsForm() {
                         </FormItem>
                     )}
                 />
+                 <Button type="button" onClick={loadSettingsFromSupabase} disabled={isSyncing}>
+                    <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Loading...' : 'Load from Supabase'}
+                </Button>
             </CardContent>
              <CardFooter className="flex-col items-start gap-2">
-                <Button type="button" variant="outline" onClick={() => setShowSql(!showSql)}>
-                    <FileText className="mr-2"/>
-                    {showSql ? 'Hide' : 'Show'} SQL Script
-                </Button>
+                <Label>SQL Table Scripts</Label>
+                <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={() => setShowSql(showSql === 'bills' ? null : 'bills')}>
+                        <FileText className="mr-2"/>
+                        {showSql === 'bills' ? 'Hide' : 'Show'} Bills SQL
+                    </Button>
+                     <Button type="button" variant="outline" onClick={() => setShowSql(showSql === 'settings' ? null : 'settings')}>
+                        <FileText className="mr-2"/>
+                        {showSql === 'settings' ? 'Hide' : 'Show'} Settings SQL
+                    </Button>
+                </div>
                 {showSql && (
                     <div className="relative w-full">
-                        <Textarea readOnly value={sqlScript} rows={10} className="font-mono text-xs bg-muted pr-10"/>
-                        <Button type="button" size="icon" variant="ghost" className="absolute top-2 right-2 h-7 w-7" onClick={handleCopySql}>
+                        <Textarea readOnly value={sqlScripts[showSql]} rows={10} className="font-mono text-xs bg-muted pr-10"/>
+                        <Button type="button" size="icon" variant="ghost" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleCopySql(showSql)}>
                             <Copy className="h-4 w-4"/>
                         </Button>
                     </div>
@@ -468,7 +575,9 @@ export function SettingsForm() {
         </Card>
 
         <div className="flex justify-end pt-4">
-            <Button type="submit" size="lg">Save All Settings</Button>
+            <Button type="submit" size="lg" disabled={isSyncing}>
+                {isSyncing ? 'Syncing...' : 'Save All Settings'}
+            </Button>
         </div>
       </form>
     </Form>
