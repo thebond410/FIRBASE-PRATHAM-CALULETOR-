@@ -25,6 +25,42 @@ export async function getCalculatedBills(): Promise<CalculatedBill[]> {
   return data.map(bill => calculateBillDetails(bill as Bill));
 };
 
+export async function getParties(): Promise<string[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase.from('bills').select('party').order('party');
+    
+    if (error) {
+        console.error("Error fetching parties:", error);
+        return [];
+    }
+
+    // Use a Set to get unique party names, then convert back to an array
+    const uniqueParties = [...new Set(data.map(item => item.party))];
+    return uniqueParties;
+}
+
+export async function getUnpaidBillsByParty(party: string): Promise<Bill[]> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return [];
+
+    // Fetches bills that are not settled (i.e., payment received but interest not paid, or no payment received at all)
+    const { data, error } = await supabase
+        .from('bills')
+        .select('*')
+        .eq('party', party)
+        .neq('interestPaid', 'Yes')
+        .order('billDate', { ascending: true });
+
+    if (error) {
+        console.error(`Error fetching unpaid bills for party ${party}:`, error);
+        return [];
+    }
+
+    return data as Bill[];
+}
+
 export async function getBillById(id: number): Promise<Bill | null> {
   const supabase = getSupabaseClient();
   if (!supabase) return null;
@@ -42,13 +78,13 @@ export async function getBillById(id: number): Promise<Bill | null> {
   return data as Bill;
 }
 
-export async function saveBill(bill: Omit<Bill, 'id' | 'created_at' | 'updated_at'> & { id?: number }): Promise<{success: boolean, error?: string}> {
+export async function saveBill(bill: Omit<Bill, 'created_at' | 'updated_at'> & { id?: number }): Promise<{success: boolean, error?: string}> {
   const supabase = getSupabaseClient();
   if (!supabase) return { success: false, error: "Supabase not configured." };
 
   const billToSave = {
     ...bill,
-    billDate: format(parseDate(bill.billDate)!, 'yyyy-MM-dd'),
+    billDate: bill.billDate ? format(parseDate(bill.billDate)!, 'yyyy-MM-dd') : null,
     recDate: bill.recDate ? format(parseDate(bill.recDate)!, 'yyyy-MM-dd') : null,
   }
 
@@ -117,16 +153,19 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
         return { success: false, error: "CSV file must have a header row and at least one data row."};
     }
 
-    const header = lines[0].split(',').map(h => h.trim());
+    const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const rows = lines.slice(1);
 
     const billsToInsert: Omit<Bill, 'id'>[] = [];
 
     for (const row of rows) {
-        const values = row.split(',');
+        // More robust CSV parsing to handle commas inside quoted fields
+        const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
+        if(values.length === 0) continue;
+        
         const billData: any = {};
         header.forEach((key, index) => {
-            billData[key] = values[index].trim();
+            billData[key] = values[index] || '';
         });
 
         const parsedDate = parseDate(billData.billDate);
@@ -138,7 +177,6 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
         if (billData.recDate && !parsedRecDate) {
              return { success: false, error: `Invalid recDate format for row: ${row}. Expected dd/MM/yyyy.`}
         }
-
 
         billsToInsert.push({
             billDate: format(parsedDate, 'yyyy-MM-dd'),
@@ -160,6 +198,10 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
         });
     }
 
+    if(billsToInsert.length === 0) {
+        return { success: false, error: "No valid bill data found to import." };
+    }
+
     try {
         const { error } = await supabase.from('bills').insert(billsToInsert);
         if (error) throw error;
@@ -169,3 +211,5 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
         return { success: false, error: err.message };
     }
 }
+
+    
