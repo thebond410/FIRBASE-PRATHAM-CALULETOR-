@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -45,7 +45,7 @@ export function SettingsForm() {
   const [showSupabaseKey, setShowSupabaseKey] = useState(false);
   const [apiStatus, setApiStatus] = useState<ApiStatus>("unconfigured");
   
-  const defaultVisibleColumns = billTableColumns.map(c => c.id);
+  const defaultVisibleColumns = useMemo(() => billTableColumns.map(c => c.id), []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -240,28 +240,45 @@ export function SettingsForm() {
                 <FormField
                   control={form.control}
                   name="visibleColumns"
-                  render={({ field }) => (
-                      <FormItem>
-                          <div className="grid grid-cols-3 gap-2">
-                          {billTableColumns.map((col) => (
-                              <FormItem key={col.id} className="flex items-center gap-2 space-y-0">
+                  render={() => (
+                    <FormItem>
+                      <div className="grid grid-cols-3 gap-2">
+                        {billTableColumns.map((item) => (
+                          <FormField
+                            key={item.id}
+                            control={form.control}
+                            name="visibleColumns"
+                            render={({ field }) => {
+                              return (
+                                <FormItem
+                                  key={item.id}
+                                  className="flex flex-row items-start space-x-3 space-y-0"
+                                >
                                   <FormControl>
-                                      <Checkbox
-                                          checked={field.value?.includes(col.id)}
-                                          onCheckedChange={(checked) => {
-                                              const newValue = checked
-                                                  ? [...field.value, col.id]
-                                                  : field.value?.filter((value) => value !== col.id);
-                                              field.onChange(newValue);
-                                          }}
-                                      />
+                                    <Checkbox
+                                      checked={field.value?.includes(item.id)}
+                                      onCheckedChange={(checked) => {
+                                        return checked
+                                          ? field.onChange([...field.value, item.id])
+                                          : field.onChange(
+                                              field.value?.filter(
+                                                (value) => value !== item.id
+                                              )
+                                            )
+                                      }}
+                                    />
                                   </FormControl>
-                                  <FormLabel className="font-normal">{col.label}</FormLabel>
-                              </FormItem>
-                          ))}
-                          </div>
-                          <FormMessage />
-                      </FormItem>
+                                  <FormLabel className="font-normal">
+                                    {item.label}
+                                  </FormLabel>
+                                </FormItem>
+                              )
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
             </CardContent>
@@ -281,29 +298,48 @@ export function SettingsForm() {
                  <FormField
                     control={form.control}
                     name="frozenColumns"
-                    render={({ field }) => (
-                        <FormItem>
-                             <div className="grid grid-cols-3 gap-2">
-                                {billTableColumns.filter(c => watchedVisibleColumns.includes(c.id)).map((col) => (
-                                     <FormItem key={col.id} className="flex items-center gap-2 space-y-0">
-                                        <FormControl>
-                                            <Checkbox
-                                                checked={field.value?.includes(col.id)}
-                                                disabled={!field.value?.includes(col.id) && field.value?.length >= 3}
-                                                onCheckedChange={(checked) => {
-                                                    const newValue = checked
-                                                        ? [...field.value, col.id]
-                                                        : field.value?.filter((value) => value !== col.id);
-                                                    field.onChange(newValue);
-                                                }}
-                                            />
-                                        </FormControl>
-                                        <FormLabel className="font-normal">{col.label}</FormLabel>
+                    render={() => (
+                      <FormItem>
+                        <div className="grid grid-cols-3 gap-2">
+                          {billTableColumns
+                            .filter(c => watchedVisibleColumns.includes(c.id))
+                            .map((item) => (
+                              <FormField
+                                key={item.id}
+                                control={form.control}
+                                name="frozenColumns"
+                                render={({ field }) => {
+                                  return (
+                                    <FormItem
+                                      key={item.id}
+                                      className="flex flex-row items-start space-x-3 space-y-0"
+                                    >
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={field.value?.includes(item.id)}
+                                          disabled={!field.value?.includes(item.id) && field.value?.length >= 3}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? field.onChange([...field.value, item.id])
+                                              : field.onChange(
+                                                  field.value?.filter(
+                                                    (value) => value !== item.id
+                                                  )
+                                                )
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="font-normal">
+                                        {item.label}
+                                      </FormLabel>
                                     </FormItem>
-                                ))}
-                            </div>
-                            <FormMessage />
-                        </FormItem>
+                                  )
+                                }}
+                              />
+                            ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
                     )}
                 />
             </CardContent>
@@ -418,7 +454,3 @@ export function SettingsForm() {
     </Form>
   );
 }
-
-    
-
-    
