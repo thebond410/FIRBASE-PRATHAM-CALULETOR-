@@ -118,7 +118,7 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
             party: String(getValue('party') || ''),
             companyName: String(getValue('companyName') || ''),
             mobile: String(getValue('mobile') || ''),
-            chequeNumber: String(getValue('chequeNumber') || ''),
+            chequeNumber: String(getValue('chequeNumber') || getValue('chqno') || ''),
             bankName: String(getValue('bankName') || ''),
             interestPaid: getValue('interestPaid') === 'Yes' ? 'Yes' : 'No',
             netAmount: parseFloat(getValue('netAmount')) || 0,
@@ -178,3 +178,4 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         return { success: false, error: `Database insert failed: ${err.message}` };
     }
 }
+
