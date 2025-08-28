@@ -25,6 +25,7 @@ const parseDate = (dateStr: string | null): Date | null => {
 export const calculateBillDetails = (bill: Bill): CalculatedBill => {
   const billDate = parseDate(bill.billDate);
   const recDate = parseDate(bill.recDate);
+  const { interestPaid } = bill;
 
   let totalDays = 0;
   if (billDate) {
@@ -45,8 +46,6 @@ export const calculateBillDetails = (bill: Bill): CalculatedBill => {
   } else if (totalDays > bill.creditDays) {
     status = 'overdue';
   }
-
-  const { interestPaid } = bill;
 
   return {
     ...bill,
