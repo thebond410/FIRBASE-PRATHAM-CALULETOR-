@@ -225,6 +225,12 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     return String(days).padStart(3, '0');
   }
 
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return "";
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  }
+
 
   return (
     <>
@@ -277,6 +283,8 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                             cellValue = formatTotalDays(cellValue as number);
                          } else if (col.id === 'interestAmount') {
                             cellValue = (cellValue as number).toFixed(2);
+                         } else if (['party', 'bankName', 'companyName'].includes(col.id)) {
+                            cellValue = truncateText(cellValue as string, 12);
                          }
 
                          return (
