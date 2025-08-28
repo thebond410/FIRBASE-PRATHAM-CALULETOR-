@@ -37,8 +37,9 @@ type OverdueParty = {
   totalAmount: number;
 };
 
+// Define which columns are for import/export. Exclude calculated fields.
 const importExportColumns: BillTableColumn[] = billTableColumns.filter(
-  (col) => !['totalDays', 'interestDays', 'interestAmount', 'interestRate'].includes(col.id)
+  (col) => !['totalDays', 'interestDays', 'interestAmount'].includes(col.id)
 );
 
 
@@ -255,7 +256,7 @@ export default function DashboardPage() {
         </Button>
       </section>
 
-      <section className="grid grid-cols-3 gap-4">
+      <section className="grid md:grid-cols-3 gap-4">
         {summaryCards.map((card) => (
           <Card key={card.title} className="overflow-hidden border-0 shadow-lg">
             <div className={`bg-gradient-to-br ${card.gradient} p-2 md:p-4`}>
@@ -324,3 +325,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
