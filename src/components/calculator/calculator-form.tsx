@@ -30,6 +30,7 @@ const formSchema = z.object({
   pes: z.string(),
   meter: z.string(),
   rate: z.coerce.number().min(0),
+  mobile: z.string(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -66,6 +67,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       pes: bill?.pes || "",
       meter: bill?.meter || "",
       rate: bill?.rate || 0,
+      mobile: bill?.mobile || "",
     },
   });
 
@@ -165,8 +167,8 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-4">
-        <div className="flex justify-end gap-2">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="flex justify-end gap-2 p-1">
             <Button type="button" onClick={() => fileInputRef.current?.click()} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
                 {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 Upload Scan
@@ -179,11 +181,12 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <input id="upload-scan" type="file" accept="image/jpeg, image/png" className="hidden" onChange={handleFileChange} ref={fileInputRef}/>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-4 p-1">
             <FormFieldInput name="billDate" label="Bill Date" />
             <FormFieldInput name="billNo" label="Bill No" />
             <FormFieldInput name="party" label="Party Name" />
             <FormFieldInput name="companyName" label="Company Name" />
+            <FormFieldInput name="mobile" label="Mobile No" />
             <FormFieldInput name="netAmount" label="Net Amount" />
             <FormFieldInput name="creditDays" label="Credit Days" />
             <FormFieldInput name="recDate" label="Receipt Date" />
@@ -208,7 +211,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end p-1">
           <Button type="submit" size="lg" className="font-bold">
             <Save className="mr-2 h-4 w-4"/>
             Save Bill
