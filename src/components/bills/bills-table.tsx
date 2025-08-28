@@ -298,7 +298,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 style={isFrozen ? frozenColumnStyles[col.id] : {}}
                                 className={cn(
                                     'font-bold px-1 whitespace-nowrap py-1',
-                                    col.id === 'totalDays' ? 'text-red-600 dark:text-red-400' : 'text-primary/80',
+                                    col.id === 'totalDays' ? 'text-red-600 dark:text-red-400' : 'text-black',
                                     isFrozen && 'sticky z-10 text-purple-800 dark:text-purple-300',
                                     isFrozen && (selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)
                                 )}
@@ -310,7 +310,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                             </TableCell>
                          );
                     })}
-                    <TableCell className={cn("text-right px-1", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}>
+                    <TableCell className={cn("text-right px-1 min-w-[100px]", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}>
                         <div className="flex items-center justify-end gap-[2px]">
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {e.stopPropagation(); router.push(`/calculator/${bill.id}`)}}>
                                 <Pencil className="h-3 w-3 text-muted-foreground" />
@@ -351,5 +351,3 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     </>
   );
 }
-
-    
