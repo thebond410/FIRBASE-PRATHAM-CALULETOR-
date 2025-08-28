@@ -1,5 +1,4 @@
 
-
 'use server'
 
 import { Bill, CalculatedBill } from '@/lib/types';
@@ -48,7 +47,7 @@ export async function getUnpaidBillsByParty(party: string): Promise<Bill[]> {
         .from('bills')
         .select('*')
         .eq('party', party)
-        .neq('interestPaid', 'Yes')
+        .or('interestPaid.is.null,interestPaid.neq.Yes')
         .order('billDate', { ascending: true });
 
     if (error) {
@@ -76,7 +75,7 @@ export async function getBillById(id: number): Promise<Bill | null> {
   return data as Bill;
 }
 
-export async function saveBill(bill: Omit<Bill, 'created_at' | 'updated_at'> & { id?: number }): Promise<{success: boolean, error?: string}> {
+export async function saveBill(bill: Omit<Bill, 'id' | 'created_at' | 'updated_at'> & { id?: number }): Promise<{success: boolean, error?: string}> {
   const supabase = getSupabaseServerClient();
   if (!supabase) return { success: false, error: "Supabase not configured." };
 
@@ -152,7 +151,7 @@ export async function importBillsFromCSV(csvText: string): Promise<{success: boo
     const header = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const rows = lines.slice(1);
 
-    const billsToInsert: Omit<Bill, 'id'>[] = [];
+    const billsToInsert: Omit<Bill, 'id' | 'created_at' | 'updated_at'>[] = [];
 
     for (const row of rows) {
         const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
