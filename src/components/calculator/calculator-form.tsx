@@ -116,9 +116,11 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             setCompanies([]);
         }
     };
-    fetchCompanies();
-    setValue("companyName", "");
-    setValue("billNos", []);
+    if (watchedParty) {
+        fetchCompanies();
+        setValue("companyName", "");
+        setValue("billNos", []);
+    }
   }, [watchedParty, setValue]);
 
 
@@ -131,8 +133,10 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         setUnpaidBills([]);
       }
     };
-    fetchBills();
-    setValue("billNos", []);
+    if (watchedParty && watchedCompanyName) {
+        fetchBills();
+        setValue("billNos", []);
+    }
   }, [watchedParty, watchedCompanyName, setValue]);
 
   useEffect(() => {
@@ -395,7 +399,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                             <Check className={cn("mr-2 h-4 w-4", c === field.value ? "opacity-100" : "opacity-0")} />
                                             {c}
                                         </Button>
-                                    )) : <p className="p-2 text-sm text-muted-foreground">No companies found.</p>}
+                                    )) : <p className="p-2 text-sm text-muted-foreground">No companies found for this party.</p>}
                                   </div>
                                </ScrollArea>
                             </PopoverContent>
@@ -414,7 +418,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                             <PopoverTrigger asChild disabled={!watchedCompanyName}>
                                 <FormControl>
                                     <Button variant="outline" className="w-full justify-between h-9 font-normal text-[11px]">
-                                        <div className="flex flex-grow flex-wrap gap-1">
+                                        <div className="flex flex-grow flex-wrap gap-1 items-center" style={{minHeight: '1rem'}}>
                                             {selectedBills.length > 0 ? (
                                                 selectedBills.map(b => <Badge key={b.id} variant="secondary" className="text-[11px]">{b.billNo}</Badge>)
                                             ) : (
@@ -440,7 +444,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                                         : [...field.value, b.billNo];
                                                     field.onChange(newValue);
                                                 }}
-                                                className="w-full justify-start text-[11px]"
+                                                className="w-full justify-start text-[11px] h-auto py-2"
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
                                                 <div className="flex justify-between w-full">
@@ -505,3 +509,5 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </Form>
   );
 }
+
+    
