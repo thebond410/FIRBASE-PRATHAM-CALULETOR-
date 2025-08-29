@@ -98,13 +98,24 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     },
   });
 
-  const { control, setValue, getValues } = form;
+  const { control, setValue, getValues, trigger, formState } = form;
 
   const watchedValues = useWatch({ control });
+  const watchedParty = useWatch({ control, name: 'party' });
+  const watchedCompanyName = useWatch({ control, name: 'companyName' });
+  const watchedBillNos = useWatch({ control, name: 'billNos' });
 
   const [totalDays, setTotalDays] = useState(0);
   const [interestDays, setInterestDays] = useState(0);
   const [interestAmount, setInterestAmount] = useState(0);
+
+  const resetCompanyAndBills = useCallback(() => {
+    setValue("companyName", "", { shouldDirty: true });
+    setCompanies([]);
+    setValue("billNos", [], { shouldDirty: true });
+    setUnpaidBills([]);
+    setSelectedBills([]);
+  }, [setValue]);
 
   useEffect(() => {
     try {
@@ -127,67 +138,53 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     fetchParties();
   }, []);
 
-  const resetCompanyAndBills = useCallback(() => {
-    setValue("companyName", "");
-    setCompanies([]);
-    setValue("billNos", []);
-    setUnpaidBills([]);
-    setSelectedBills([]);
-  }, [setValue]);
 
   useEffect(() => {
+    // This effect handles fetching companies when the party changes.
+    // It also resets company and bill selections.
     const fetchCompanies = async () => {
-        if(watchedValues.party) {
-            const companyList = await getCompaniesByParty(watchedValues.party);
+        if (watchedParty) {
+            const companyList = await getCompaniesByParty(watchedParty);
             setCompanies(companyList);
-            if (!bill && companyList.length > 0 && watchedValues.companyName !== companyList[0]) {
-              // No need to auto-select company, user should do it.
-            }
+        } else {
+            setCompanies([]);
         }
     };
     
-    if (watchedValues.party && (watchedValues.party !== getValues('party') || companies.length === 0)) {
+    // Check if this is not the initial render and the party has actually changed
+    if (formState.dirtyFields.party) {
         resetCompanyAndBills();
     }
-    
-    if(watchedValues.party) {
-        fetchCompanies();
-    } else {
-        setCompanies([]);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedValues.party]);
+    fetchCompanies();
+  }, [watchedParty, resetCompanyAndBills, formState.dirtyFields.party]);
 
 
   useEffect(() => {
+    // This effect handles fetching unpaid bills when party or company changes.
     const fetchBills = async () => {
-      if (watchedValues.party && watchedValues.companyName) {
-        const bills = await getUnpaidBillsByParty(watchedValues.party, watchedValues.companyName);
+      if (watchedParty && watchedCompanyName) {
+        const bills = await getUnpaidBillsByParty(watchedParty, watchedCompanyName);
         setUnpaidBills(bills);
       } else {
         setUnpaidBills([]);
       }
     };
-    
-    if (watchedValues.party && watchedValues.companyName) {
-        if(watchedValues.companyName !== getValues('companyName')) {
-            setValue("billNos", []);
-            setSelectedBills([]);
-        }
-        fetchBills();
-    } else {
-      setUnpaidBills([]);
+
+    if (formState.dirtyFields.companyName) {
+       setValue("billNos", []);
+       setSelectedBills([]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedValues.party, watchedValues.companyName]);
+    fetchBills();
+  }, [watchedParty, watchedCompanyName, setValue, formState.dirtyFields.companyName]);
+
 
   useEffect(() => {
-    const newSelectedBills = unpaidBills.filter(b => watchedValues.billNos?.includes(b.billNo));
+    const newSelectedBills = unpaidBills.filter(b => watchedBillNos?.includes(b.billNo));
     setSelectedBills(newSelectedBills);
     
     if (newSelectedBills.length > 0) {
       const totalNetAmount = newSelectedBills.reduce((sum, b) => sum + b.netAmount, 0);
-      setValue("netAmount", totalNetAmount);
+      setValue("netAmount", totalNetAmount, { shouldDirty: true });
       
       const timestamps = newSelectedBills
         .map(b => parseDate(b.billDate)?.getTime())
@@ -196,33 +193,41 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       if (timestamps.length > 0) {
         const avgTimestamp = timestamps.reduce((a, b) => a + b, 0) / timestamps.length;
         const avgDate = new Date(avgTimestamp);
-        setValue("billDate", formatDateForInput(avgDate));
+        setValue("billDate", formatDateForInput(avgDate), { shouldDirty: true });
       }
       
-      setValue("creditDays", newSelectedBills[0].creditDays);
-      setValue("mobile", newSelectedBills[0].mobile || "");
+      setValue("creditDays", newSelectedBills[0].creditDays, { shouldDirty: true });
+      setValue("mobile", newSelectedBills[0].mobile || "", { shouldDirty: true });
     } else if (!bill) {
-      setValue("netAmount", 0);
-      setValue("billDate", "");
-      setValue("creditDays", 30);
-      setValue("mobile", "");
+      setValue("netAmount", 0, { shouldDirty: true });
+      setValue("billDate", "", { shouldDirty: true });
+      setValue("creditDays", 30, { shouldDirty: true });
+      setValue("mobile", "", { shouldDirty: true });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedValues.billNos, unpaidBills, setValue, bill]);
+  }, [watchedBillNos, unpaidBills, setValue, bill]);
 
 
   useEffect(() => {
     const billDate = parseDate(watchedValues.billDate);
-    const recDate = parseDate(watchedValues.recDate);
     
     if (billDate) {
         const calculatedDetails = calculateBillDetails({
-            ...getValues(),
-            id: 0, // Mock id
-            billNo: getValues('billNos').join(','),
-            billDate: getValues('billDate') || '',
-            recDate: getValues('recDate'),
-            pes: '', meter: '', rate: 0 // Mock data
+            id: bill?.id ?? 0, // Mock id
+            billNo: watchedValues.billNos?.join(',') ?? '',
+            billDate: watchedValues.billDate || '',
+            netAmount: watchedValues.netAmount,
+            creditDays: watchedValues.creditDays,
+            recDate: watchedValues.recDate,
+            interestPaid: watchedValues.interestPaid,
+            recAmount: watchedValues.recAmount,
+            party: watchedValues.party,
+            companyName: watchedValues.companyName || '',
+            mobile: watchedValues.mobile || '',
+            chequeNumber: watchedValues.chequeNumber || '',
+            bankName: watchedValues.bankName || '',
+            pes: bill?.pes ?? '', 
+            meter: bill?.meter ?? '', 
+            rate: bill?.rate ?? 0 
         });
         
         setTotalDays(calculatedDetails.totalDays);
@@ -233,7 +238,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       setInterestDays(0);
       setInterestAmount(0);
     }
-  }, [watchedValues.billDate, watchedValues.recDate, watchedValues.creditDays, watchedValues.netAmount, getValues]);
+  }, [watchedValues.billDate, watchedValues.recDate, watchedValues.creditDays, watchedValues.netAmount, watchedValues.billNos, bill, watchedValues.interestPaid, watchedValues.recAmount, watchedValues.party, watchedValues.companyName, watchedValues.mobile, watchedValues.chequeNumber, watchedValues.bankName]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -464,7 +469,6 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                             onClick={() => {
                                                 field.onChange(p);
                                                 setPartyPopoverOpen(false);
-                                                resetCompanyAndBills();
                                             }}
                                             className="w-full justify-start text-left h-auto py-2 text-[11px]"
                                         >
@@ -487,7 +491,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                     <FormItem className="flex flex-col">
                         <FormLabel className="text-[11px]">Company Name</FormLabel>
                         <Popover open={isCompanyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
-                            <PopoverTrigger asChild disabled={!watchedValues.party}>
+                            <PopoverTrigger asChild disabled={!watchedParty}>
                                 <FormControl>
                                     <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9 text-[11px]", !field.value && "text-muted-foreground")}>
                                         <span className="truncate">{field.value || "Select company"}</span>
@@ -505,8 +509,6 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                             onClick={() => {
                                                 field.onChange(c);
                                                 setCompanyPopoverOpen(false);
-                                                setValue("billNos", []);
-                                                setSelectedBills([]);
                                             }}
                                             className="w-full justify-start text-left h-auto py-2 text-[11px]"
                                         >
@@ -529,7 +531,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                     <FormItem>
                         <FormLabel className="text-[11px]">Bill No(s)</FormLabel>
                         <Popover open={isBillNoPopoverOpen} onOpenChange={setBillNoPopoverOpen}>
-                            <PopoverTrigger asChild disabled={!watchedValues.companyName}>
+                            <PopoverTrigger asChild disabled={!watchedCompanyName}>
                                 <FormControl>
                                     <Button variant="outline" className="w-full justify-between h-9 font-normal text-[11px]">
                                         <div className="flex flex-grow flex-wrap gap-1 items-center" style={{minHeight: '1rem'}}>
