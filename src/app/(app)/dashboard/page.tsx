@@ -25,6 +25,7 @@ import { billTableColumns, BillTableColumn } from '@/lib/types';
 import { format } from 'date-fns';
 import { getSupabaseClient } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
+import * as XLSX from 'xlsx';
 
 
 type Summary = {
@@ -155,18 +156,31 @@ export default function DashboardPage() {
   };
   
   const handleDownloadTemplate = () => {
-    const headers = importExportColumns.map(col => col.id).join(',');
-    const blob = new Blob([headers], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    if (link.href) {
-      URL.revokeObjectURL(link.href);
-    }
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.setAttribute('download', 'bill_import_template.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const headers = importExportColumns.map(col => col.id);
+    const sampleEntry = {
+        billDate: '01/04/2024',
+        billNo: '101',
+        party: 'Sample Party Name',
+        netAmount: 15000.00,
+        creditDays: 30,
+        recDate: '15/04/2024',
+        interestPaid: 'No',
+        mobile: '9876543210',
+        companyName: 'Sample Company',
+        chequeNumber: '123456',
+        bankName: 'Sample Bank',
+        recAmount: 15000.00,
+        pes: 'Sample PES',
+        meter: '123 Mtr',
+        rate: 10.50
+    };
+    
+    const dataToExport = [Object.values(sampleEntry)];
+    
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataToExport]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Bills");
+    XLSX.writeFile(wb, "bill_import_template.xls");
   };
 
   const handleDownloadList = () => {
@@ -174,32 +188,22 @@ export default function DashboardPage() {
       toast({ title: "No data to export", description: "There are no bills to download."});
       return;
     }
-    const headers = importExportColumns.map(col => col.id).join(',');
-    const csvRows = bills.map(bill => {
+
+    const headers = importExportColumns.map(col => col.id);
+    const data = bills.map(bill => {
         return importExportColumns.map(col => {
             const value = bill[col.id as keyof CalculatedBill];
-             if (value instanceof Date) {
-                return format(value, 'dd/MM/yyyy');
-            }
              if (col.id === 'billDate' || col.id === 'recDate') {
                 return value ? format(new Date(value as string), 'dd/MM/yyyy') : '';
              }
-            if (typeof value === 'string' && value.includes(',')) {
-                return `"${value}"`;
-            }
             return value;
-        }).join(',');
+        });
     });
 
-    const csvString = [headers, ...csvRows].join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.href = url;
-    link.setAttribute('download', 'bill_list.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Bill List");
+    XLSX.writeFile(wb, "bill_list.xls");
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -275,7 +279,7 @@ export default function DashboardPage() {
             {isUploading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Upload className="mr-1 h-4 w-4" />}
             Upload
         </Button>
-        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".csv, .xls, .xlsx" />
+        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept=".xls, .xlsx" />
 
         <Button onClick={handleDownloadTemplate} className={`text-white font-semibold text-xs h-12 bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 transition-opacity`}>
             <Download className="mr-1 h-4 w-4" />
@@ -360,5 +364,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
