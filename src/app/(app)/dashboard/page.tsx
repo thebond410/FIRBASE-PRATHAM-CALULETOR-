@@ -7,7 +7,7 @@ import { importBills } from '@/app/actions';
 import type { CalculatedBill } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, BarChart, Banknote, AlertTriangle, User, Trash2, List, Loader2 } from 'lucide-react';
+import { Upload, Download, BarChart, Banknote, AlertTriangle, User, Trash2, List, Loader2, KeyRound } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +26,8 @@ import { format } from 'date-fns';
 import { getSupabaseClient } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import * as XLSX from 'xlsx';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 
 type Summary = {
@@ -89,8 +91,9 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [bills, setBills] = useState<CalculatedBill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState(isUploading);
   const [isAlertOpen, setAlertOpen] = useState(false);
+  const [clearPassword, setClearPassword] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { summary, overdueParties } = useMemo(() => calculateSummaries(bills), [bills]);
@@ -143,6 +146,15 @@ export default function DashboardPage() {
   };
 
   const handleClearData = async () => {
+    if (clearPassword !== 'Manoj34001') {
+      toast({
+        title: 'Incorrect Password',
+        description: 'The password you entered is incorrect. Data was not cleared.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       await clearAllBills();
       // State will be updated by real-time sync
@@ -157,6 +169,7 @@ export default function DashboardPage() {
         variant: 'destructive',
       });
     }
+    setClearPassword('');
     setAlertOpen(false);
   };
   
@@ -342,19 +355,36 @@ export default function DashboardPage() {
             </Card>
         )}
       </section>
-      <AlertDialog open={isAlertOpen} onOpenChange={setAlertOpen}>
+      <AlertDialog open={isAlertOpen} onOpenChange={(open) => { setAlertOpen(open); if (!open) setClearPassword(''); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all bill data from your Supabase table.
+              This action cannot be undone. This will permanently delete all bill data.
+              <br />
+              To confirm, please enter the login password.
             </AlertDialogDescription>
+            <div className="pt-2">
+                <Label htmlFor="clear-password" className="sr-only">Password</Label>
+                <div className="relative">
+                    <KeyRound className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        id="clear-password"
+                        type="password"
+                        placeholder="Password"
+                        value={clearPassword}
+                        onChange={(e) => setClearPassword(e.target.value)}
+                        className="pl-8"
+                    />
+                </div>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={handleClearData}
+              disabled={!clearPassword}
             >
               Continue
             </AlertDialogAction>
@@ -364,3 +394,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
