@@ -16,7 +16,7 @@ export default function BillListPage() {
   
   const fetchBills = useCallback(async () => {
     // Avoid setting isLoading to true on re-fetches to prevent UI flashing
-    const fetchedBills = await getCalculatedBills();
+    let fetchedBills = await getCalculatedBills();
     if (partyFilter) {
       fetchedBills = fetchedBills.filter(bill => bill.party === partyFilter);
     }
