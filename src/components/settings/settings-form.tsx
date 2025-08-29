@@ -198,7 +198,7 @@ export function SettingsForm() {
             toast({ title: "Settings Loaded", description: "Successfully loaded settings from Supabase." });
         }
       } catch (error: any) {
-        console.error("Error loading settings from Supabase:", error);
+        console.error("Error loading settings from Supabase:", error.message);
         toast({ title: "Load Failed", description: error.message, variant: "destructive" });
       } finally {
         setIsSyncing(false);
@@ -254,7 +254,7 @@ export function SettingsForm() {
                 toast({ title: "Settings Saved", description: "Your settings have been saved locally and to Supabase." });
 
             } catch (error: any) {
-                console.error("Error saving settings to Supabase:", error);
+                console.error("Error saving settings to Supabase:", error.message);
                 toast({ title: "Supabase Save Failed", description: error.message, variant: "destructive" });
             } finally {
                 setIsSyncing(false);
@@ -262,7 +262,10 @@ export function SettingsForm() {
         } else {
              toast({ title: "Settings Saved Locally", description: "Your settings have been saved locally. Configure Supabase to save them to the cloud." });
         }
-      } else {
+      } else if (saveToSupabase === false) { // This condition is met on loadFromSupabase
+        // Do not toast here, it's handled in the calling function.
+      }
+       else {
         toast({ title: "Settings Saved Locally", description: "Settings have been updated locally." });
       }
 
@@ -652,3 +655,5 @@ export function SettingsForm() {
     </Form>
   );
 }
+
+    
