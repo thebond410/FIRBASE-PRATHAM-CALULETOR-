@@ -289,6 +289,8 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                             cellValue = formatDate(cellValue as string | null);
                          } else if (col.id === 'rate') {
                             cellValue = (cellValue as number).toFixed(2);
+                         } else if (col.id === 'interestAmount') {
+                            cellValue = Math.round(cellValue as number);
                          } else if (['party', 'bankName', 'companyName'].includes(col.id)) {
                             cellValue = truncateText(cellValue as string, 10);
                          }
@@ -307,7 +309,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                     isFrozen && (selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)
                                 )}
                             >
-                               {col.id === 'netAmount' || col.id === 'recAmount' ? '₹' : ''}
+                               {col.id === 'netAmount' || col.id === 'recAmount' || col.id === 'interestAmount' ? '₹' : ''}
                                {typeof cellValue === 'number' && !['rate', 'creditDays'].includes(col.id) ? cellValue.toLocaleString('en-IN') : cellValue}
                                
                             </TableCell>

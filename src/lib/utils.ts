@@ -54,8 +54,8 @@ export const calculateBillDetails = (bill: Bill): CalculatedBill => {
   
   const interestDays = Math.max(0, totalDays - bill.creditDays);
   
-  // Updated interest calculation as per request: net amount* int. days* 0.0004765
-  const interestAmount = bill.netAmount * interestDays * 0.0004765;
+  // Updated interest calculation as per request: net amount * int. days * 0.00048
+  const interestAmount = bill.netAmount * interestDays * 0.00048;
 
   let status: CalculatedBill['status'] = 'pending';
   // Red: Rows where Total Days > Credit Days.

@@ -41,7 +41,7 @@ type OverdueParty = {
 };
 
 // Define which columns are for import/export. 
-const importExportColumns: BillTableColumn[] = billTableColumns;
+const importExportColumns: BillTableColumn[] = billTableColumns.filter(c => !['totalDays', 'interestDays', 'interestAmount'].includes(c.id));
 
 
 function calculateSummaries(bills: CalculatedBill[]): { summary: Summary; overdueParties: OverdueParty[] } {

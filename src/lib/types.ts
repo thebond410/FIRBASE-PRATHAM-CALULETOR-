@@ -29,7 +29,7 @@ export interface CalculatedBill extends Bill {
 }
 
 export interface BillTableColumn {
-    id: keyof Omit<CalculatedBill, 'id' | 'status' | 'created_at' | 'updated_at' | 'totalDays' | 'interestDays' | 'interestAmount'>;
+    id: keyof Omit<CalculatedBill, 'id' | 'status' | 'created_at' | 'updated_at'>;
     label: string;
     shortLabel: string;
     className: string;
@@ -44,6 +44,9 @@ export const billTableColumns: BillTableColumn[] = [
     { id: 'rate', label: 'Rate', shortLabel: 'Rate', className: 'bg-gradient-to-r from-rose-600 to-rose-500' },
     { id: 'netAmount', label: 'Net Amount', shortLabel: 'Net Amt', className: 'bg-gradient-to-r from-purple-600 to-purple-500' },
     { id: 'creditDays', label: 'Credit Days', shortLabel: 'Cr. Days', className: 'bg-gradient-to-r from-pink-600 to-pink-500' },
+    { id: 'totalDays', label: 'Total Days', shortLabel: 'Total Days', className: 'bg-gradient-to-r from-yellow-600 to-yellow-500'},
+    { id: 'interestDays', label: 'Interest Days', shortLabel: 'Int. Days', className: 'bg-gradient-to-r from-orange-600 to-orange-500'},
+    { id: 'interestAmount', label: 'Interest Amount', shortLabel: 'Int. Amt', className: 'bg-gradient-to-r from-red-600 to-red-500'},
     { id: 'interestPaid', label: 'Interest Paid', shortLabel: 'Int. Paid', className: 'bg-gradient-to-r from-sky-600 to-sky-500'},
     { id: 'recDate', label: 'Receipt Date', shortLabel: 'Rec. Dt', className: 'bg-gradient-to-r from-red-600 to-red-500' },
     { id: 'recAmount', label: 'Receipt Amount', shortLabel: 'Rec. Amt', className: 'bg-gradient-to-r from-lime-600 to-lime-500' },
