@@ -166,8 +166,6 @@ export default function DashboardPage() {
         rate: 10.50,
         netAmount: 15000.00,
         creditDays: 30,
-        interestDays: 0, // Calculated field
-        interestAmount: 0, // Calculated field
         interestPaid: 'No',
         recDate: '15/04/2024',
         recAmount: 15000.00,

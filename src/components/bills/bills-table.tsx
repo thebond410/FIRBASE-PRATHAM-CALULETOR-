@@ -287,9 +287,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
 
                          if (col.id === 'billDate' || col.id === 'recDate') {
                             cellValue = formatDate(cellValue as string | null);
-                         } else if (col.id === 'totalDays') {
-                            cellValue = formatTotalDays(cellValue as number);
-                         } else if (col.id === 'interestAmount' || col.id === 'rate') {
+                         } else if (col.id === 'rate') {
                             cellValue = (cellValue as number).toFixed(2);
                          } else if (['party', 'bankName', 'companyName'].includes(col.id)) {
                             cellValue = truncateText(cellValue as string, 10);
@@ -304,15 +302,14 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 }}
                                 className={cn(
                                     'font-bold px-1 whitespace-nowrap py-1 text-black',
-                                    col.id === 'totalDays' ? 'text-red-600 dark:text-red-400' : 'text-black',
+                                    'text-black',
                                     isFrozen && 'sticky z-10 text-purple-800 dark:text-purple-300',
                                     isFrozen && (selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)
                                 )}
                             >
                                {col.id === 'netAmount' || col.id === 'recAmount' ? '₹' : ''}
-                               {typeof cellValue === 'number' && !['totalDays', 'interestDays', 'interestAmount', 'rate', 'creditDays'].includes(col.id) ? cellValue.toLocaleString('en-IN') : cellValue}
-                               {col.id === 'interestAmount' && '₹'}
-
+                               {typeof cellValue === 'number' && !['rate', 'creditDays'].includes(col.id) ? cellValue.toLocaleString('en-IN') : cellValue}
+                               
                             </TableCell>
                          );
                     })}
