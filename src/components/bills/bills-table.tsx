@@ -238,9 +238,9 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
 
   return (
     <>
-      <div className="rounded-lg bg-card" style={{ fontSize: `${fontSize}px`}}>
+      <div className="rounded-lg bg-card">
         <div ref={tableContainerRef} className="w-full overflow-x-auto">
-            <Table>
+            <Table style={{ fontSize: `${fontSize}px`}}>
                 <TableHeader className="sticky top-0 z-30">
                 <TableRow className="bg-primary hover:bg-primary/90">
                     <TableHead className="w-[45px] px-1 text-white font-bold sticky left-0 z-20 bg-primary h-auto py-0">Sr.</TableHead>
@@ -249,14 +249,16 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                         return (
                             <TableHead 
                                 key={col.id} 
-                                style={isFrozen ? frozenColumnStyles[col.id] : {}}
+                                style={{
+                                  ... (isFrozen ? frozenColumnStyles[col.id] : {}),
+                                }}
                                 className={cn(
                                     "px-1 text-white h-auto py-1",
                                     col.className,
                                     isFrozen && "sticky z-10 bg-gradient-to-r from-indigo-600 to-purple-600"
                                 )}
                             >
-                                <Button variant="ghost" onClick={() => handleSort(col.id as keyof CalculatedBill)} className="px-2 py-0 h-auto text-xs text-white hover:text-white/90 font-bold">
+                                <Button variant="ghost" onClick={() => handleSort(col.id as keyof CalculatedBill)} className="px-2 py-0 h-auto text-white hover:text-white/90 font-bold" style={{ fontSize: `${fontSize}px` }}>
                                     {col.shortLabel}
                                 </Button>
                             </TableHead>
@@ -295,7 +297,9 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                          return (
                             <TableCell
                                 key={col.id}
-                                style={isFrozen ? frozenColumnStyles[col.id] : {}}
+                                style={{
+                                  ... (isFrozen ? frozenColumnStyles[col.id] : {}),
+                                }}
                                 className={cn(
                                     'font-bold px-1 whitespace-nowrap py-1 text-black',
                                     col.id === 'totalDays' ? 'text-red-600 dark:text-red-400' : 'text-black',
