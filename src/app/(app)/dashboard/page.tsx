@@ -321,11 +321,11 @@ export default function DashboardPage() {
         {overdueParties.length > 0 ? (
             <div className="grid grid-cols-3 gap-4">
             {overdueParties.map((party, index) => (
-              <Card key={party.party} onClick={() => handlePartyClick(party.party)} className={cn("shadow-md border-0 bg-gradient-to-tr border-l-4 cursor-pointer p-0.5", partyCardColors[index % partyCardColors.length])}>
+              <Card key={party.party} onClick={() => handlePartyClick(party.party)} className={cn("shadow-md border-0 bg-gradient-to-tr border-l-4 cursor-pointer p-2", partyCardColors[index % partyCardColors.length])}>
                 <CardHeader className="p-4">
                   <CardTitle className="flex items-center gap-2 text-[12px] truncate">
                     <User className="h-5 w-5" />
-                    {truncateText(party.party, 12)}
+                    {truncateText(party.party, 18)}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 text-sm p-4 pt-0">
