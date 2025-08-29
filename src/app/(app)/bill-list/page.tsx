@@ -15,8 +15,8 @@ export default function BillListPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   const fetchBills = useCallback(async () => {
-    setIsLoading(true);
-    let fetchedBills = await getCalculatedBills();
+    // Avoid setting isLoading to true on re-fetches to prevent UI flashing
+    const fetchedBills = await getCalculatedBills();
     if (partyFilter) {
       fetchedBills = fetchedBills.filter(bill => bill.party === partyFilter);
     }
@@ -25,6 +25,7 @@ export default function BillListPage() {
   }, [partyFilter]);
 
   useEffect(() => {
+    setIsLoading(true);
     fetchBills();
 
     const supabase = getSupabaseClient();
@@ -40,7 +41,11 @@ export default function BillListPage() {
           fetchBills();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscribed to real-time bill list updates!');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);

@@ -96,13 +96,14 @@ export default function DashboardPage() {
   const { summary, overdueParties } = useMemo(() => calculateSummaries(bills), [bills]);
   
   const fetchBills = useCallback(async () => {
-    // No need to set is loading to true here, to avoid flashing on real-time updates
+    // Avoid setting isLoading to true on re-fetches to prevent UI flashing
     const fetchedBills = await getCalculatedBills();
     setBills(fetchedBills);
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
+    setIsLoading(true);
     fetchBills();
     
     const supabase = getSupabaseClient();
@@ -119,7 +120,11 @@ export default function DashboardPage() {
           fetchBills();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscribed to real-time bill updates!');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -130,7 +135,7 @@ export default function DashboardPage() {
   const summaryCards = [
     { title: "Total Entries", value: summary.totalEntries.toLocaleString(), icon: BarChart, gradient: "from-blue-500 to-indigo-500" },
     { title: "Total Net Amount", value: `₹${summary.totalNetAmount.toLocaleString('en-IN')}`, icon: Banknote, gradient: "from-green-500 to-lime-500" },
-    { title: "Overdue Amount", value: `₹${summary.overdueAmount.toLocaleString('en-IN')}`, icon: AlertTriangle, gradient: "from-red-500 to-orange-500" },
+    { title: "Overdue Amount", value: `₹${summary.overdueAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, icon: AlertTriangle, gradient: "from-red-500 to-orange-500" },
   ];
   
   const handlePartyClick = (partyName: string) => {
@@ -266,13 +271,6 @@ export default function DashboardPage() {
     );
   }
   
-  const truncateText = (text: string | null | undefined, maxLength: number): string => {
-    if (!text) return "";
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
-  }
-
-
   return (
     <div className="flex flex-col space-y-4 p-0">
 
