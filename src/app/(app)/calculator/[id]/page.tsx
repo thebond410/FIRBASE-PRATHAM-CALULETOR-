@@ -17,6 +17,7 @@ export default function EditCalculatorPage() {
 
   useEffect(() => {
     const fetchBill = async () => {
+        setIsLoading(true);
         const fetchedBill = await getBillById(Number(id));
         setBill(fetchedBill);
         setIsLoading(false);
@@ -35,10 +36,20 @@ export default function EditCalculatorPage() {
       </div>
     );
   }
+  
+  if (!bill) {
+    return (
+        <div className="p-4 text-center">
+            <p>Bill not found.</p>
+        </div>
+    )
+  }
 
   return (
     <div className="p-1">
-      <CalculatorForm bill={bill ?? undefined} />
+      <CalculatorForm bill={bill} />
     </div>
   );
 }
+
+    

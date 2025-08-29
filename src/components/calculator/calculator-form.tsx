@@ -82,28 +82,47 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      party: bill?.party || "",
-      billNos: bill ? [bill.billNo] : [],
-      companyName: bill?.companyName || "",
-      billDate: formatDateForInput(bill?.billDate),
-      netAmount: bill?.netAmount || 0,
-      creditDays: bill?.creditDays || 30,
-      recDate: formatDateForInput(bill?.recDate),
-      recAmount: bill?.recAmount || 0,
-      chequeNumber: bill?.chequeNumber || "",
-      bankName: bill?.bankName || "",
-      mobile: bill?.mobile || "",
-      interestPaid: bill?.interestPaid || 'No',
+    defaultValues: bill ? {
+      id: bill.id,
+      party: bill.party,
+      billNos: [bill.billNo],
+      companyName: bill.companyName,
+      billDate: formatDateForInput(bill.billDate),
+      netAmount: bill.netAmount,
+      creditDays: bill.creditDays,
+      recDate: formatDateForInput(bill.recDate),
+      recAmount: bill.recAmount,
+      chequeNumber: bill.chequeNumber,
+      bankName: bill.bankName,
+      mobile: bill.mobile,
+      interestPaid: bill.interestPaid || 'No',
+    } : {
+      party: "",
+      billNos: [],
+      companyName: "",
+      billDate: "",
+      netAmount: 0,
+      creditDays: 30,
+      recDate: null,
+      recAmount: 0,
+      chequeNumber: "",
+      bankName: "",
+      mobile: "",
+      interestPaid: 'No',
     },
   });
 
   const { control, setValue, getValues, trigger, formState } = form;
 
-  const watchedValues = useWatch({ control });
   const watchedParty = useWatch({ control, name: 'party' });
   const watchedCompanyName = useWatch({ control, name: 'companyName' });
   const watchedBillNos = useWatch({ control, name: 'billNos' });
+  const watchedBillDate = useWatch({ control, name: 'billDate' });
+  const watchedRecDate = useWatch({ control, name: 'recDate' });
+  const watchedCreditDays = useWatch({ control, name: 'creditDays' });
+  const watchedNetAmount = useWatch({ control, name: 'netAmount' });
+  const watchedInterestPaid = useWatch({ control, name: 'interestPaid' });
+  const watchedRecAmount = useWatch({ control, name: 'recAmount' });
 
   const [totalDays, setTotalDays] = useState(0);
   const [interestDays, setInterestDays] = useState(0);
@@ -140,23 +159,36 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
 
   useEffect(() => {
-    // This effect handles fetching companies when the party changes.
-    // It also resets company and bill selections.
-    const fetchCompanies = async () => {
+    const fetchCompaniesAndBills = async () => {
         if (watchedParty) {
             const companyList = await getCompaniesByParty(watchedParty);
             setCompanies(companyList);
+
+            if (bill && bill.party === watchedParty) {
+                // If editing a bill, ensure its company is in the list
+                if (bill.companyName && !companyList.includes(bill.companyName)) {
+                    setCompanies(prev => [...prev, bill.companyName]);
+                }
+                const bills = await getUnpaidBillsByParty(watchedParty, bill.companyName);
+                const currentBillIsInList = bills.some(b => b.id === bill.id);
+                if (!currentBillIsInList) {
+                    setUnpaidBills([...bills, bill]);
+                } else {
+                    setUnpaidBills(bills);
+                }
+
+            } else {
+                 if (formState.dirtyFields.party) {
+                    resetCompanyAndBills();
+                 }
+            }
         } else {
             setCompanies([]);
         }
     };
     
-    // Check if this is not the initial render and the party has actually changed
-    if (formState.dirtyFields.party) {
-        resetCompanyAndBills();
-    }
-    fetchCompanies();
-  }, [watchedParty, resetCompanyAndBills, formState.dirtyFields.party]);
+    fetchCompaniesAndBills();
+  }, [watchedParty, bill, resetCompanyAndBills, formState.dirtyFields.party]);
 
 
   useEffect(() => {
@@ -164,7 +196,16 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     const fetchBills = async () => {
       if (watchedParty && watchedCompanyName) {
         const bills = await getUnpaidBillsByParty(watchedParty, watchedCompanyName);
-        setUnpaidBills(bills);
+        if (bill && bill.companyName === watchedCompanyName) {
+             const currentBillIsInList = bills.some(b => b.id === bill.id);
+             if (!currentBillIsInList) {
+                setUnpaidBills([...bills, bill]);
+             } else {
+                setUnpaidBills(bills);
+             }
+        } else {
+            setUnpaidBills(bills);
+        }
       } else {
         setUnpaidBills([]);
       }
@@ -175,7 +216,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
        setSelectedBills([]);
     }
     fetchBills();
-  }, [watchedParty, watchedCompanyName, setValue, formState.dirtyFields.companyName]);
+  }, [watchedParty, watchedCompanyName, setValue, formState.dirtyFields.companyName, bill]);
 
 
   useEffect(() => {
@@ -199,6 +240,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       setValue("creditDays", newSelectedBills[0].creditDays, { shouldDirty: true });
       setValue("mobile", newSelectedBills[0].mobile || "", { shouldDirty: true });
     } else if (!bill) {
+      // Only reset if it's a new form, not an edit form that has its bill deselected
       setValue("netAmount", 0, { shouldDirty: true });
       setValue("billDate", "", { shouldDirty: true });
       setValue("creditDays", 30, { shouldDirty: true });
@@ -208,23 +250,23 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
 
   useEffect(() => {
-    const billDate = parseDate(watchedValues.billDate);
+    const billDate = parseDate(watchedBillDate);
     
     if (billDate) {
         const calculatedDetails = calculateBillDetails({
             id: bill?.id ?? 0, // Mock id
-            billNo: watchedValues.billNos?.join(',') ?? '',
-            billDate: watchedValues.billDate || '',
-            netAmount: watchedValues.netAmount,
-            creditDays: watchedValues.creditDays,
-            recDate: watchedValues.recDate,
-            interestPaid: watchedValues.interestPaid,
-            recAmount: watchedValues.recAmount,
-            party: watchedValues.party,
-            companyName: watchedValues.companyName || '',
-            mobile: watchedValues.mobile || '',
-            chequeNumber: watchedValues.chequeNumber || '',
-            bankName: watchedValues.bankName || '',
+            billNo: watchedBillNos?.join(',') ?? '',
+            billDate: watchedBillDate || '',
+            netAmount: watchedNetAmount,
+            creditDays: watchedCreditDays,
+            recDate: watchedRecDate,
+            interestPaid: watchedInterestPaid,
+            recAmount: watchedRecAmount,
+            party: watchedParty,
+            companyName: watchedCompanyName || '',
+            mobile: bill?.mobile ?? '',
+            chequeNumber: bill?.chequeNumber ?? '',
+            bankName: bill?.bankName ?? '',
             pes: bill?.pes ?? '', 
             meter: bill?.meter ?? '', 
             rate: bill?.rate ?? 0 
@@ -238,7 +280,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       setInterestDays(0);
       setInterestAmount(0);
     }
-  }, [watchedValues.billDate, watchedValues.recDate, watchedValues.creditDays, watchedValues.netAmount, watchedValues.billNos, bill, watchedValues.interestPaid, watchedValues.recAmount, watchedValues.party, watchedValues.companyName, watchedValues.mobile, watchedValues.chequeNumber, watchedValues.bankName]);
+  }, [watchedBillDate, watchedRecDate, watchedCreditDays, watchedNetAmount, watchedBillNos, bill, watchedInterestPaid, watchedRecAmount, watchedParty, watchedCompanyName]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -341,27 +383,40 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
 
   async function onSubmit(values: FormValues) {
-    if (selectedBills.length === 0 && !bill) {
+    if (watchedBillNos.length === 0) {
       toast({ title: "No bills selected", description: "Please select at least one bill to save.", variant: "destructive" });
       return;
     }
     
     setIsSaving(true);
-
-    const billsToUpdate = bill ? [bill] : selectedBills;
-    const totalNetAmount = billsToUpdate.reduce((sum, b) => sum + b.netAmount, 0);
     
+    const billsToSave = watchedBillNos.map(billNo => {
+      const originalBill = unpaidBills.find(b => b.billNo === billNo) || (bill && bill.billNo === billNo ? bill : null);
+      if (!originalBill) {
+          toast({ title: `Error`, description: `Could not find original data for bill number ${billNo}.`, variant: "destructive" });
+          return null;
+      }
+      return { ...originalBill, ...values };
+    }).filter(b => b !== null) as (Bill & FormValues)[];
+    
+    if (billsToSave.length === 0) {
+        setIsSaving(false);
+        return;
+    }
+
+    const totalSelectedAmount = billsToSave.reduce((sum, b) => sum + b.netAmount, 0);
+
     let successCount = 0;
     let firstUpdatedBillForWhatsapp: Bill | null = null;
     
-    for (const sBill of billsToUpdate) {
-        const proportion = totalNetAmount > 0 ? sBill.netAmount / totalNetAmount : (1 / billsToUpdate.length);
+    for (const sBill of billsToSave) {
+        const proportion = totalSelectedAmount > 0 ? sBill.netAmount / totalSelectedAmount : (1 / billsToSave.length);
         const distributedRecAmount = values.recAmount * proportion;
         
         const billDataToSave = {
             ...sBill,
             recDate: values.recDate,
-            recAmount: distributedRecAmount,
+            recAmount: bill ? values.recAmount : distributedRecAmount, // if editing, use full amount
             chequeNumber: values.chequeNumber || "",
             bankName: values.bankName || "",
             interestPaid: values.interestPaid,
@@ -369,6 +424,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             party: values.party,
             companyName: values.companyName || "",
             mobile: values.mobile || "",
+            billNo: sBill.billNo,
+            netAmount: sBill.netAmount,
+            id: sBill.id
         };
         
         const result = await saveBill(billDataToSave);
@@ -395,12 +453,12 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       if (askForWhatsapp && firstUpdatedBillForWhatsapp) {
          const calculated = calculateBillDetails(firstUpdatedBillForWhatsapp);
          // If multiple bills are updated, create a summary for WhatsApp
-         if (billsToUpdate.length > 1) {
-             const combinedBillNo = billsToUpdate.map(b => b.billNo).join(', ');
+         if (billsToSave.length > 1) {
+             const combinedBillNo = billsToSave.map(b => b.billNo).join(', ');
              const summaryBill: CalculatedBill = {
                  ...calculated,
                  billNo: combinedBillNo,
-                 netAmount: totalNetAmount,
+                 netAmount: totalSelectedAmount,
                  recAmount: values.recAmount,
              };
              setBillForWhatsApp(summaryBill);
@@ -422,9 +480,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         name={name}
         render={({ field }) => (
             <FormItem>
-                <FormLabel className="text-[11px]">{label}</FormLabel>
+                <FormLabel className="text-[11px] font-bold">{label}</FormLabel>
                 <FormControl>
-                    <Input {...field} type={type} readOnly={readOnly} className={cn("h-9 text-[11px]", readOnly && "bg-muted")} value={field.value ?? ""} onChange={(e) => field.onChange( e.target.value)} />
+                    <Input {...field} type={type} readOnly={readOnly} className={cn("h-9 text-[11px] font-bold", readOnly && "bg-muted")} value={field.value ?? ""} onChange={(e) => field.onChange( e.target.value)} />
                 </FormControl>
                 <FormMessage />
             </FormItem>
@@ -434,7 +492,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   
   const InfoField = ({ label, value }: { label: string; value: string | number }) => (
      <div className="space-y-2">
-        <Label className="text-[11px]">{label}</Label>
+        <Label className="text-[11px] font-bold">{label}</Label>
         <Input value={value} readOnly className="font-bold bg-muted h-9 text-[11px]" />
     </div>
   )
@@ -463,11 +521,11 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 name="party"
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
-                        <FormLabel className="text-[11px]">Party Name</FormLabel>
+                        <FormLabel className="text-[11px] font-bold">Party Name</FormLabel>
                         <Popover open={isPartyPopoverOpen} onOpenChange={setPartyPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <FormControl>
-                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9 text-[11px]", !field.value && "text-muted-foreground")}>
+                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9 text-[11px] font-bold", !field.value && "text-muted-foreground")}>
                                         <span className="truncate">{field.value || "Select party"}</span>
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
@@ -484,7 +542,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                                 field.onChange(p);
                                                 setPartyPopoverOpen(false);
                                             }}
-                                            className="w-full justify-start text-left h-auto py-2 text-[11px]"
+                                            className="w-full justify-start text-left h-auto py-2 text-[11px] font-bold"
                                         >
                                             <Check className={cn("mr-2 h-4 w-4", p === field.value ? "opacity-100" : "opacity-0")} />
                                             {p}
@@ -503,11 +561,11 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 name="companyName"
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
-                        <FormLabel className="text-[11px]">Company Name</FormLabel>
+                        <FormLabel className="text-[11px] font-bold">Company Name</FormLabel>
                         <Popover open={isCompanyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
                             <PopoverTrigger asChild disabled={!watchedParty}>
                                 <FormControl>
-                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9 text-[11px]", !field.value && "text-muted-foreground")}>
+                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9 text-[11px] font-bold", !field.value && "text-muted-foreground")}>
                                         <span className="truncate">{field.value || "Select company"}</span>
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
@@ -524,7 +582,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                                 field.onChange(c);
                                                 setCompanyPopoverOpen(false);
                                             }}
-                                            className="w-full justify-start text-left h-auto py-2 text-[11px]"
+                                            className="w-full justify-start text-left h-auto py-2 text-[11px] font-bold"
                                         >
                                             <Check className={cn("mr-2 h-4 w-4", c === field.value ? "opacity-100" : "opacity-0")} />
                                             {c}
@@ -543,7 +601,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 name="billNos"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-[11px]">Bill No(s)</FormLabel>
+                        <FormLabel className="text-[11px] font-bold">Bill No(s)</FormLabel>
                         <Popover open={isBillNoPopoverOpen} onOpenChange={setBillNoPopoverOpen}>
                             <PopoverTrigger asChild disabled={!watchedCompanyName}>
                                 <FormControl>
@@ -604,9 +662,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 name="creditDays"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-[11px]">Credit Days</FormLabel>
+                        <FormLabel className="text-[11px] font-bold">Credit Days</FormLabel>
                         <FormControl>
-                            <Input {...field} type="number" className="h-9 text-[11px]" onChange={(e) => field.onChange(e.target.valueAsNumber || 0)} />
+                            <Input {...field} type="number" className="h-9 text-[11px] font-bold" onChange={(e) => field.onChange(e.target.valueAsNumber || 0)} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -622,9 +680,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 name="recAmount"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-[11px]">Receipt Amount</FormLabel>
+                        <FormLabel className="text-[11px] font-bold">Receipt Amount</FormLabel>
                         <FormControl>
-                            <Input {...field} type="number" className="h-9 text-[11px]" onChange={(e) => field.onChange(e.target.valueAsNumber || 0)} />
+                            <Input {...field} type="number" className="h-9 text-[11px] font-bold" onChange={(e) => field.onChange(e.target.valueAsNumber || 0)} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -640,9 +698,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 name="interestPaid"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-[11px]">Interest Paid</FormLabel>
+                        <FormLabel className="text-[11px] font-bold">Interest Paid</FormLabel>
                         <FormControl>
-                            <select {...field} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-[11px] ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                            <select {...field} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-[11px] font-bold ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                                 <option value="No">No</option>
                                 <option value="Yes">Yes</option>
                             </select>
@@ -654,7 +712,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         </div>
 
         <div className="flex justify-end p-1">
-          <Button type="submit" size="lg" className="font-bold text-[11px]" disabled={isSaving}>
+          <Button type="submit" size="lg" className="font-bold text-base" disabled={isSaving}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
             Save Bill
           </Button>
@@ -680,3 +738,5 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </>
   );
 }
+
+    
