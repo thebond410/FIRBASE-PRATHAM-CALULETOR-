@@ -243,7 +243,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
             <Table style={{ fontSize: `${fontSize}px`}}>
                 <TableHeader className="sticky top-0 z-30">
                 <TableRow className="bg-primary hover:bg-primary/90">
-                    <TableHead className="w-[45px] px-1 text-white font-bold sticky left-0 z-20 bg-primary h-auto py-0">Sr.</TableHead>
+                    <TableHead className="w-[45px] px-1 text-white font-bold sticky left-0 z-20 bg-primary h-auto py-0" style={{ fontSize: `${fontSize}px` }}>Sr.</TableHead>
                     {visibleColumns.map((col) => {
                         const isFrozen = columnConfig.frozenColumns.includes(col.id);
                         return (
@@ -251,6 +251,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 key={col.id} 
                                 style={{
                                   ... (isFrozen ? frozenColumnStyles[col.id] : {}),
+                                  fontSize: `${fontSize}px`
                                 }}
                                 className={cn(
                                     "px-1 text-white h-auto py-1",
@@ -264,7 +265,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                             </TableHead>
                         );
                     })}
-                    <TableHead className="text-right px-1 text-white font-bold h-auto py-1 min-w-[100px]">Actions</TableHead>
+                    <TableHead className="text-right px-1 text-white font-bold h-auto py-1 min-w-[100px]" style={{ fontSize: `${fontSize}px` }}>Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -277,7 +278,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                         className={cn('h-4 font-bold cursor-pointer my-2', selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}
                         style={{ height: '4px', padding: '4px' }}
                     >
-                    <TableCell className={cn("font-sans px-1 sticky left-0 z-10 w-[45px] py-1", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)}>
+                    <TableCell className={cn("font-sans px-1 sticky left-0 z-10 w-[45px] py-1", selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)} style={{ fontSize: `${fontSize}px` }}>
                         {index + 1}
                     </TableCell>
                     {visibleColumns.map(col => {
@@ -299,6 +300,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 key={col.id}
                                 style={{
                                   ... (isFrozen ? frozenColumnStyles[col.id] : {}),
+                                  fontSize: `${fontSize}px`
                                 }}
                                 className={cn(
                                     'font-bold px-1 whitespace-nowrap py-1 text-black',
@@ -355,5 +357,3 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     </>
   );
 }
-
-    

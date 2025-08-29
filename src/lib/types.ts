@@ -43,7 +43,6 @@ export const billTableColumns: BillTableColumn[] = [
     { id: 'meter', label: 'Meter', shortLabel: 'Meter', className: 'bg-gradient-to-r from-fuchsia-600 to-fuchsia-500' },
     { id: 'rate', label: 'Rate', shortLabel: 'Rate', className: 'bg-gradient-to-r from-rose-600 to-rose-500' },
     { id: 'netAmount', label: 'Net Amount', shortLabel: 'Net Amt', className: 'bg-gradient-to-r from-purple-600 to-purple-500' },
-    { id: 'totalDays', label: 'Total Days', shortLabel: 'Tot. Days', className: 'bg-gradient-to-r from-orange-600 to-orange-500' },
     { id: 'creditDays', label: 'Credit Days', shortLabel: 'Cr. Days', className: 'bg-gradient-to-r from-pink-600 to-pink-500' },
     { id: 'interestDays', label: 'Interest Days', shortLabel: 'Int. Days', className: 'bg-gradient-to-r from-yellow-600 to-yellow-500' },
     { id: 'interestAmount', label: 'Interest Amount', shortLabel: 'Int. Amt', className: 'bg-gradient-to-r from-teal-600 to-teal-500' },

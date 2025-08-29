@@ -165,7 +165,6 @@ export default function DashboardPage() {
         meter: '123 Mtr',
         rate: 10.50,
         netAmount: 15000.00,
-        totalDays: 0, // Calculated field, so can be 0
         creditDays: 30,
         interestDays: 0, // Calculated field
         interestAmount: 0, // Calculated field
@@ -369,5 +368,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
