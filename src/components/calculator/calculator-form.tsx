@@ -93,7 +93,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   const watchedParty = useWatch({ control: form.control, name: 'party' });
   const watchedBillNos = useWatch({ control: form.control, name: 'billNos' });
   const watchedCompanyName = useWatch({ control: form.control, name: 'companyName'});
-  const { setValue } = form;
+  const { setValue, getValues } = form;
 
   const [totalDays, setTotalDays] = useState(0);
   const [interestDays, setInterestDays] = useState(0);
@@ -107,21 +107,30 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     fetchParties();
   }, []);
 
+  const resetCompanyAndBills = useCallback(() => {
+    setValue("companyName", "");
+    setCompanies([]);
+    setValue("billNos", []);
+    setUnpaidBills([]);
+  }, [setValue]);
+
   useEffect(() => {
     const fetchCompanies = async () => {
         if(watchedParty) {
             const companyList = await getCompaniesByParty(watchedParty);
             setCompanies(companyList);
-        } else {
-            setCompanies([]);
         }
     };
-    if (watchedParty) {
+
+    if (watchedParty && watchedParty !== getValues('party')) {
         fetchCompanies();
-        setValue("companyName", "");
-        setValue("billNos", []);
+        resetCompanyAndBills();
+    } else if (watchedParty) {
+        fetchCompanies();
+    } else {
+        setCompanies([]);
     }
-  }, [watchedParty, setValue]);
+  }, [watchedParty, resetCompanyAndBills, getValues]);
 
 
   useEffect(() => {
@@ -129,15 +138,18 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       if (watchedParty && watchedCompanyName) {
         const bills = await getUnpaidBillsByParty(watchedParty, watchedCompanyName);
         setUnpaidBills(bills);
-      } else {
-        setUnpaidBills([]);
       }
     };
+    
     if (watchedParty && watchedCompanyName) {
+        if(watchedCompanyName !== getValues('companyName')) {
+            setValue("billNos", []);
+        }
         fetchBills();
-        setValue("billNos", []);
+    } else {
+      setUnpaidBills([]);
     }
-  }, [watchedParty, watchedCompanyName, setValue]);
+  }, [watchedParty, watchedCompanyName, setValue, getValues]);
 
   useEffect(() => {
     const newSelectedBills = unpaidBills.filter(b => watchedBillNos?.includes(b.billNo));
@@ -338,7 +350,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                             <PopoverTrigger asChild>
                                 <FormControl>
                                     <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9 text-[11px]", !field.value && "text-muted-foreground")}>
-                                        {field.value || "Select party"}
+                                        <span className="truncate">{field.value || "Select party"}</span>
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </FormControl>
@@ -353,6 +365,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                             onClick={() => {
                                                 form.setValue("party", p);
                                                 setPartyPopoverOpen(false);
+                                                resetCompanyAndBills();
                                             }}
                                             className="w-full justify-start text-left h-auto py-2 text-[11px]"
                                         >
@@ -378,7 +391,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                             <PopoverTrigger asChild disabled={!watchedParty}>
                                 <FormControl>
                                     <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9 text-[11px]", !field.value && "text-muted-foreground")}>
-                                        {field.value || "Select company"}
+                                        <span className="truncate">{field.value || "Select company"}</span>
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </FormControl>
