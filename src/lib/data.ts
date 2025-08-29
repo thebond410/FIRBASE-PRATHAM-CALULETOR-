@@ -57,17 +57,23 @@ export async function getCompaniesByParty(party: string): Promise<string[]> {
     return uniqueCompanies as string[];
 }
 
-export async function getUnpaidBillsByParty(party: string, companyName: string): Promise<Bill[]> {
+export async function getUnpaidBillsByParty(party: string, companyName?: string | null): Promise<Bill[]> {
     const supabase = getSupabaseServerClient();
     if (!supabase) return [];
 
-    const { data, error } = await supabase
+    let query = supabase
         .from('bills')
         .select('*')
         .eq('party', party)
-        .eq('companyName', companyName)
-        .or('interestPaid.is.null,interestPaid.neq.Yes')
-        .order('billDate', { ascending: true });
+        .or('interestPaid.is.null,interestPaid.neq.Yes');
+
+    if (companyName) {
+        query = query.eq('companyName', companyName);
+    }
+    
+    query = query.order('billDate', { ascending: true });
+
+    const { data, error } = await query;
 
     if (error) {
         console.error(`Error fetching unpaid bills for party ${party}:`, error);

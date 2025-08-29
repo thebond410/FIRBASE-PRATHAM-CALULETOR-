@@ -128,14 +128,6 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   const [interestDays, setInterestDays] = useState(0);
   const [interestAmount, setInterestAmount] = useState(0);
 
-  const resetCompanyAndBills = useCallback(() => {
-    setValue("companyName", "", { shouldDirty: true });
-    setCompanies([]);
-    setValue("billNos", [], { shouldDirty: true });
-    setUnpaidBills([]);
-    setSelectedBills([]);
-  }, [setValue]);
-
   useEffect(() => {
     try {
       const storedAsk = localStorage.getItem("askForWhatsappOnSave");
@@ -159,64 +151,56 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
 
   useEffect(() => {
-    const fetchCompaniesAndBills = async () => {
-        if (watchedParty) {
-            const companyList = await getCompaniesByParty(watchedParty);
-            setCompanies(companyList);
+    const fetchCompanies = async () => {
+      if (watchedParty) {
+        const companyList = await getCompaniesByParty(watchedParty);
+        setCompanies(companyList);
 
-            if (bill && bill.party === watchedParty) {
-                // If editing a bill, ensure its company is in the list
-                if (bill.companyName && !companyList.includes(bill.companyName)) {
-                    setCompanies(prev => [...prev, bill.companyName]);
-                }
-                const bills = await getUnpaidBillsByParty(watchedParty, bill.companyName);
-                const currentBillIsInList = bills.some(b => b.id === bill.id);
-                if (!currentBillIsInList) {
-                    setUnpaidBills([...bills, bill]);
-                } else {
-                    setUnpaidBills(bills);
-                }
-
-            } else {
-                 if (formState.dirtyFields.party) {
-                    resetCompanyAndBills();
-                 }
-            }
-        } else {
-            setCompanies([]);
+        // If editing a bill, ensure its company is in the list
+        if (bill && bill.party === watchedParty && bill.companyName && !companyList.includes(bill.companyName)) {
+            setCompanies(prev => [...prev, bill.companyName!]);
         }
+      } else {
+        setCompanies([]);
+      }
     };
     
-    fetchCompaniesAndBills();
-  }, [watchedParty, bill, resetCompanyAndBills, formState.dirtyFields.party]);
+    fetchCompanies();
+
+    if (formState.dirtyFields.party) {
+        setValue("companyName", "", { shouldDirty: true });
+        setValue("billNos", [], { shouldDirty: true });
+    }
+  }, [watchedParty, bill, setValue, formState.dirtyFields.party]);
 
 
   useEffect(() => {
-    // This effect handles fetching unpaid bills when party or company changes.
     const fetchBills = async () => {
-      if (watchedParty && watchedCompanyName) {
+      if (watchedParty) {
         const bills = await getUnpaidBillsByParty(watchedParty, watchedCompanyName);
-        if (bill && bill.companyName === watchedCompanyName) {
-             const currentBillIsInList = bills.some(b => b.id === bill.id);
-             if (!currentBillIsInList) {
-                setUnpaidBills([...bills, bill]);
-             } else {
-                setUnpaidBills(bills);
-             }
-        } else {
-            setUnpaidBills(bills);
+        
+        let finalBills = bills;
+        // If we are editing a bill, make sure it is in the list of options, even if paid
+        if (bill && bill.party === watchedParty) {
+            if (!watchedCompanyName || bill.companyName === watchedCompanyName) {
+                const isEditingBillInList = bills.some(b => b.id === bill.id);
+                if (!isEditingBillInList) {
+                    finalBills = [...bills, bill];
+                }
+            }
         }
+        setUnpaidBills(finalBills);
       } else {
         setUnpaidBills([]);
       }
     };
 
+    fetchBills();
+
     if (formState.dirtyFields.companyName) {
        setValue("billNos", []);
-       setSelectedBills([]);
     }
-    fetchBills();
-  }, [watchedParty, watchedCompanyName, setValue, formState.dirtyFields.companyName, bill]);
+  }, [watchedParty, watchedCompanyName, bill, formState.dirtyFields.companyName, setValue]);
 
 
   useEffect(() => {
@@ -321,7 +305,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         if (matchingBill) {
             setValue("companyName", matchingBill.companyName, { shouldDirty: true, shouldValidate: true });
             // This will trigger other use-effects to populate bill details
-            setValue("billNos", [matchingBill.billNo], { shouldDirty: true, shouldValidate: true });
+            setTimeout(() => {
+                setValue("billNos", [matchingBill.billNo], { shouldDirty: true, shouldValidate: true });
+            }, 100);
             toast({ title: "Bill Matched!", description: `Automatically selected bill #${matchingBill.billNo} for company ${matchingBill.companyName}.` });
         } else {
             toast({ title: "No Unique Bill Match", description: "Please select the company and bill manually.", variant: "default" });
@@ -603,7 +589,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                     <FormItem>
                         <FormLabel className="text-[11px] font-bold">Bill No(s)</FormLabel>
                         <Popover open={isBillNoPopoverOpen} onOpenChange={setBillNoPopoverOpen}>
-                            <PopoverTrigger asChild disabled={!watchedCompanyName}>
+                            <PopoverTrigger asChild disabled={!watchedParty}>
                                 <FormControl>
                                     <Button variant="outline" className="w-full justify-between h-9 font-normal text-[11px]">
                                         <div className="flex flex-grow flex-wrap gap-1 items-center" style={{minHeight: '1rem'}}>
@@ -738,5 +724,3 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </>
   );
 }
-
-    
