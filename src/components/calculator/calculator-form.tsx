@@ -89,11 +89,17 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     },
   });
 
-  const watchedValues = useWatch({ control: form.control });
-  const watchedParty = useWatch({ control: form.control, name: 'party' });
-  const watchedBillNos = useWatch({ control: form.control, name: 'billNos' });
-  const watchedCompanyName = useWatch({ control: form.control, name: 'companyName'});
-  const { setValue, getValues } = form;
+  const { control, setValue, getValues } = form;
+
+  // Watch only the fields needed for calculation to avoid unnecessary re-renders
+  const watchedBillDate = useWatch({ control, name: 'billDate' });
+  const watchedRecDate = useWatch({ control, name: 'recDate' });
+  const watchedCreditDays = useWatch({ control, name: 'creditDays' });
+  const watchedNetAmount = useWatch({ control, name: 'netAmount' });
+  
+  const watchedParty = useWatch({ control, name: 'party' });
+  const watchedBillNos = useWatch({ control, name: 'billNos' });
+  const watchedCompanyName = useWatch({ control, name: 'companyName'});
 
   const [totalDays, setTotalDays] = useState(0);
   const [interestDays, setInterestDays] = useState(0);
@@ -112,6 +118,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     setCompanies([]);
     setValue("billNos", []);
     setUnpaidBills([]);
+    setSelectedBills([]);
   }, [setValue]);
 
   useEffect(() => {
@@ -121,15 +128,18 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             setCompanies(companyList);
         }
     };
-
+    
+    // Only fetch if the party has actually changed from the initial/previous state
     if (watchedParty && watchedParty !== getValues('party')) {
-        fetchCompanies();
         resetCompanyAndBills();
-    } else if (watchedParty) {
+    }
+    
+    if(watchedParty) {
         fetchCompanies();
     } else {
         setCompanies([]);
     }
+
   }, [watchedParty, resetCompanyAndBills, getValues]);
 
 
@@ -138,12 +148,16 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       if (watchedParty && watchedCompanyName) {
         const bills = await getUnpaidBillsByParty(watchedParty, watchedCompanyName);
         setUnpaidBills(bills);
+      } else {
+        setUnpaidBills([]);
       }
     };
     
     if (watchedParty && watchedCompanyName) {
+         // If company changes, reset selected bills
         if(watchedCompanyName !== getValues('companyName')) {
             setValue("billNos", []);
+            setSelectedBills([]);
         }
         fetchBills();
     } else {
@@ -161,7 +175,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       
       const timestamps = newSelectedBills
         .map(b => parseDate(b.billDate)?.getTime())
-        .filter((t): t is number => t !== undefined);
+        .filter((t): t is number => t !== undefined && !isNaN(t));
 
       if (timestamps.length > 0) {
         const avgTimestamp = timestamps.reduce((a, b) => a + b, 0) / timestamps.length;
@@ -170,8 +184,8 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       }
       
       setValue("creditDays", newSelectedBills[0].creditDays);
-      setValue("mobile", newSelectedBills[0].mobile);
-    } else if (!bill) {
+      setValue("mobile", newSelectedBills[0].mobile || "");
+    } else if (!bill) { // Only reset if it's a new entry form
       setValue("netAmount", 0);
       setValue("billDate", "");
       setValue("creditDays", 30);
@@ -181,25 +195,25 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
 
   useEffect(() => {
-    const billDate = parseDate(watchedValues.billDate);
-    const recDate = parseDate(watchedValues.recDate);
+    const billDate = parseDate(watchedBillDate);
+    const recDate = parseDate(watchedRecDate);
     
     if (billDate) {
       const endOfPeriod = recDate || new Date();
       const total = differenceInDays(endOfPeriod, billDate);
       setTotalDays(total > 0 ? total : 0);
 
-      const interest = Math.max(0, total - (watchedValues.creditDays || 0));
+      const interest = Math.max(0, total - (watchedCreditDays || 0));
       setInterestDays(interest);
       
-      const amount = (watchedValues.netAmount * 0.1717 / 365) * interest;
+      const amount = (watchedNetAmount * 0.1717 / 365) * interest;
       setInterestAmount(Math.round(amount > 0 ? amount : 0));
     } else {
       setTotalDays(0);
       setInterestDays(0);
       setInterestAmount(0);
     }
-  }, [watchedValues.billDate, watchedValues.recDate, watchedValues.creditDays, watchedValues.netAmount]);
+  }, [watchedBillDate, watchedRecDate, watchedCreditDays, watchedNetAmount]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -223,14 +237,14 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       const result = await scanCheque({ photoDataUri: dataUri });
       if (result.success && result.data) {
         const { partyName, date, amount, chequeNumber, bankName } = result.data;
-        form.setValue("party", partyName);
+        setValue("party", partyName);
         if (date) {
             const parsed = parseDate(date);
-            if(parsed) form.setValue("recDate", format(parsed, 'yyyy-MM-dd'));
+            if(parsed) setValue("recDate", format(parsed, 'yyyy-MM-dd'));
         }
-        form.setValue("recAmount", parseFloat(amount.replace(/[^0-9.]/g, '')) || 0);
-        form.setValue("chequeNumber", chequeNumber);
-        form.setValue("bankName", bankName);
+        setValue("recAmount", parseFloat(amount.replace(/[^0-9.]/g, '')) || 0);
+        setValue("chequeNumber", chequeNumber);
+        setValue("bankName", bankName);
         toast({ title: "Scan Successful", description: "Fields have been populated from the cheque." });
       } else {
         toast({ title: "Scan Failed", description: result.error, variant: "destructive" });
@@ -274,7 +288,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             creditDays: values.creditDays,
             party: values.party,
             companyName: values.companyName || "",
-            mobile: values.mobile,
+            mobile: values.mobile || "",
         };
 
         // @ts-ignore
@@ -301,7 +315,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   
   const FormFieldInput = ({ name, label, type = "text", readOnly = false }: { name: keyof FormValues, label: string, type?: string, readOnly?: boolean }) => (
     <FormField
-        control={form.control}
+        control={control}
         name={name}
         render={({ field }) => (
             <FormItem>
@@ -341,7 +355,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         <div className="grid grid-cols-3 gap-x-2 gap-y-4 p-1">
             {/* Row 1 */}
             <FormField
-                control={form.control}
+                control={control}
                 name="party"
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
@@ -363,8 +377,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                             variant="ghost"
                                             key={p}
                                             onClick={() => {
-                                                form.setValue("party", p);
+                                                setValue("party", p, { shouldDirty: true });
                                                 setPartyPopoverOpen(false);
+                                                // Manually trigger dependent field updates
                                                 resetCompanyAndBills();
                                             }}
                                             className="w-full justify-start text-left h-auto py-2 text-[11px]"
@@ -382,7 +397,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 )}
             />
              <FormField
-                control={form.control}
+                control={control}
                 name="companyName"
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
@@ -404,8 +419,10 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                             variant="ghost"
                                             key={c}
                                             onClick={() => {
-                                                form.setValue("companyName", c);
+                                                setValue("companyName", c, { shouldDirty: true });
                                                 setCompanyPopoverOpen(false);
+                                                setValue("billNos", []);
+                                                setSelectedBills([]);
                                             }}
                                             className="w-full justify-start text-left h-auto py-2 text-[11px]"
                                         >
@@ -422,7 +439,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 )}
             />
             <Controller
-                control={form.control}
+                control={control}
                 name="billNos"
                 render={({ field }) => (
                     <FormItem>
@@ -495,7 +512,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <FormFieldInput name="bankName" label="Bank Name" />
             <FormFieldInput name="mobile" label="Mobile No" readOnly={true}/>
             <FormField
-                control={form.control}
+                control={control}
                 name="interestPaid"
                 render={({ field }) => (
                     <FormItem>
@@ -522,5 +539,3 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </Form>
   );
 }
-
-    
