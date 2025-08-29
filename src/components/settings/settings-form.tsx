@@ -103,8 +103,8 @@ export function SettingsForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       apiKey: "",
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+      supabaseUrl: "https://xwobggszxxdnlzzhgkff.supabase.co",
+      supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3b2JnZ3N6eHhkbmx6emhna2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzOTUxNjIsImV4cCI6MjA3MTk3MTE2Mn0.cAI3Tp5ihJY7jPiCGCNN9GAQAHUYcvoaLCOIYTk77_o",
       noRecDateTemplate: defaultTemplates.noRecDate,
       pendingInterestTemplate: defaultTemplates.pendingInterest,
       paymentThanksTemplate: defaultTemplates.paymentThanks,
@@ -127,8 +127,8 @@ export function SettingsForm() {
         setApiStatus("unconfigured");
       }
       
-      form.setValue("supabaseUrl", process.env.NEXT_PUBLIC_SUPABASE_URL || "");
-      form.setValue("supabaseKey", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
+      form.setValue("supabaseUrl", "https://xwobggszxxdnlzzhgkff.supabase.co");
+      form.setValue("supabaseKey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3b2JnZ3N6eHhkbmx6emhna2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzOTUxNjIsImV4cCI6MjA3MTk3MTE2Mn0.cAI3Tp5ihJY7jPiCGCNN9GAQAHUYcvoaLCOIYTk77_o");
       
 
       const storedTemplates = localStorage.getItem("whatsappTemplates");
