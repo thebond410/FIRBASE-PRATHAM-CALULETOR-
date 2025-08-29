@@ -10,14 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { differenceInDays, parse, format } from "date-fns";
+import { differenceInDays, parse, format, addDays } from "date-fns";
 import { Camera, Loader2, Save, Upload, Check, ChevronsUpDown, X } from "lucide-react";
 import { scanCheque } from "@/app/actions";
 import { Label } from "@/components/ui/label";
-import { saveBill, getParties, getUnpaidBillsByParty } from "@/lib/data";
+import { saveBill, getParties, getUnpaidBillsByParty, getCompaniesByParty } from "@/lib/data";
 import { useRouter } from "next/navigation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -50,9 +49,9 @@ const parseDate = (dateStr: string | null | undefined): Date | null => {
     return null;
 }
 
-const formatDateForInput = (dateStr: string | null | undefined): string => {
-    if (!dateStr) return "";
-    const parsed = parseDate(dateStr);
+const formatDateForInput = (date: Date | string | null | undefined): string => {
+    if (!date) return "";
+    const parsed = typeof date === 'string' ? parseDate(date) : date;
     return parsed ? format(parsed, 'yyyy-MM-dd') : "";
 }
 
@@ -64,9 +63,13 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [parties, setParties] = useState<string[]>([]);
+  const [companies, setCompanies] = useState<string[]>([]);
   const [unpaidBills, setUnpaidBills] = useState<Bill[]>([]);
   const [selectedBills, setSelectedBills] = useState<Bill[]>([]);
+  
   const [isPartyPopoverOpen, setPartyPopoverOpen] = useState(false);
+  const [isCompanyPopoverOpen, setCompanyPopoverOpen] = useState(false);
+  const [isBillNoPopoverOpen, setBillNoPopoverOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -89,6 +92,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   const watchedValues = useWatch({ control: form.control });
   const watchedParty = useWatch({ control: form.control, name: 'party' });
   const watchedBillNos = useWatch({ control: form.control, name: 'billNos' });
+  const watchedCompanyName = useWatch({ control: form.control, name: 'companyName'});
   const { setValue } = form;
 
   const [totalDays, setTotalDays] = useState(0);
@@ -104,18 +108,32 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   }, []);
 
   useEffect(() => {
+    const fetchCompanies = async () => {
+        if(watchedParty) {
+            const companyList = await getCompaniesByParty(watchedParty);
+            setCompanies(companyList);
+        } else {
+            setCompanies([]);
+        }
+    };
+    fetchCompanies();
+    setValue("companyName", "");
+    setValue("billNos", []);
+  }, [watchedParty, setValue]);
+
+
+  useEffect(() => {
     const fetchBills = async () => {
-      if (watchedParty) {
-        const bills = await getUnpaidBillsByParty(watchedParty);
+      if (watchedParty && watchedCompanyName) {
+        const bills = await getUnpaidBillsByParty(watchedParty, watchedCompanyName);
         setUnpaidBills(bills);
       } else {
         setUnpaidBills([]);
       }
     };
     fetchBills();
-    // On party change, reset bill selections
     setValue("billNos", []);
-  }, [watchedParty, setValue]);
+  }, [watchedParty, watchedCompanyName, setValue]);
 
   useEffect(() => {
     const newSelectedBills = unpaidBills.filter(b => watchedBillNos?.includes(b.billNo));
@@ -125,16 +143,22 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       const totalNetAmount = newSelectedBills.reduce((sum, b) => sum + b.netAmount, 0);
       setValue("netAmount", totalNetAmount);
       
-      // Use the date and details from the first selected bill
-      setValue("billDate", formatDateForInput(newSelectedBills[0].billDate));
+      const timestamps = newSelectedBills
+        .map(b => parseDate(b.billDate)?.getTime())
+        .filter((t): t is number => t !== undefined);
+
+      if (timestamps.length > 0) {
+        const avgTimestamp = timestamps.reduce((a, b) => a + b, 0) / timestamps.length;
+        const avgDate = new Date(avgTimestamp);
+        setValue("billDate", formatDateForInput(avgDate));
+      }
+      
       setValue("creditDays", newSelectedBills[0].creditDays);
-      setValue("companyName", newSelectedBills[0].companyName);
       setValue("mobile", newSelectedBills[0].mobile);
-    } else if (!bill) { // only clear if not editing
+    } else if (!bill) {
       setValue("netAmount", 0);
       setValue("billDate", "");
       setValue("creditDays", 30);
-      setValue("companyName", "");
       setValue("mobile", "");
     }
   }, [watchedBillNos, unpaidBills, setValue, bill]);
@@ -152,7 +176,6 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       const interest = Math.max(0, total - (watchedValues.creditDays || 0));
       setInterestDays(interest);
       
-      // Interest calculation based on user request
       const amount = (watchedValues.netAmount * 0.1717 / 365) * interest;
       setInterestAmount(Math.round(amount > 0 ? amount : 0));
     } else {
@@ -218,19 +241,24 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     setIsSaving(true);
 
     const billsToUpdate = bill ? [bill] : selectedBills;
+    const totalNetAmount = billsToUpdate.reduce((sum, b) => sum + b.netAmount, 0);
+    
     let successCount = 0;
     
     for (const sBill of billsToUpdate) {
+        const proportion = totalNetAmount > 0 ? sBill.netAmount / totalNetAmount : 0;
+        const distributedRecAmount = values.recAmount * proportion;
+        
         const billDataToSave = {
             ...sBill,
             recDate: values.recDate,
-            recAmount: values.recAmount,
+            recAmount: distributedRecAmount, // Proportional amount
             chequeNumber: values.chequeNumber || "",
             bankName: values.bankName || "",
             interestPaid: values.interestPaid,
             creditDays: values.creditDays,
-            party: values.party, // Make sure to save the potentially changed party
-            companyName: values.companyName,
+            party: values.party,
+            companyName: values.companyName || "",
             mobile: values.mobile,
         };
 
@@ -323,7 +351,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                                 form.setValue("party", p);
                                                 setPartyPopoverOpen(false);
                                             }}
-                                            className="w-full justify-start"
+                                            className="w-full justify-start text-left h-auto py-2"
                                         >
                                             <Check className={cn("mr-2 h-4 w-4", p === field.value ? "opacity-100" : "opacity-0")} />
                                             {p}
@@ -337,16 +365,56 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                     </FormItem>
                 )}
             />
-             <Controller
+             <FormField
+                control={form.control}
+                name="companyName"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                        <FormLabel>Company Name</FormLabel>
+                        <Popover open={isCompanyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
+                            <PopoverTrigger asChild disabled={!watchedParty}>
+                                <FormControl>
+                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9", !field.value && "text-muted-foreground")}>
+                                        {field.value || "Select company"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                               <ScrollArea className="h-72">
+                                  <div className="p-1">
+                                    {companies.length > 0 ? companies.map((c) => (
+                                        <Button
+                                            variant="ghost"
+                                            key={c}
+                                            onClick={() => {
+                                                form.setValue("companyName", c);
+                                                setCompanyPopoverOpen(false);
+                                            }}
+                                            className="w-full justify-start text-left h-auto py-2"
+                                        >
+                                            <Check className={cn("mr-2 h-4 w-4", c === field.value ? "opacity-100" : "opacity-0")} />
+                                            {c}
+                                        </Button>
+                                    )) : <p className="p-2 text-sm text-muted-foreground">No companies found.</p>}
+                                  </div>
+                               </ScrollArea>
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+            <Controller
                 control={form.control}
                 name="billNos"
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Bill No(s)</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
+                        <Popover open={isBillNoPopoverOpen} onOpenChange={setBillNoPopoverOpen}>
+                            <PopoverTrigger asChild disabled={!watchedCompanyName}>
                                 <FormControl>
-                                    <div className="relative flex min-h-9 w-full items-center justify-end rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                                    <Button variant="outline" className="w-full justify-between h-9 font-normal">
                                         <div className="flex flex-grow flex-wrap gap-1">
                                             {selectedBills.length > 0 ? (
                                                 selectedBills.map(b => <Badge key={b.id} variant="secondary">{b.billNo}</Badge>)
@@ -355,45 +423,42 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                             )}
                                         </div>
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </div>
+                                    </Button>
                                 </FormControl>
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command>
-                                    <CommandInput placeholder="Search bills..." />
-                                    <CommandEmpty>No unpaid bills found for this party.</CommandEmpty>
-                                    <CommandGroup>
-                                        <CommandList>
-                                        {unpaidBills.map((b) => {
-                                            const isSelected = field.value.includes(b.billNo);
-                                            return (
-                                                <CommandItem
-                                                    key={b.id}
-                                                    onSelect={() => {
-                                                        const newValue = isSelected
-                                                            ? field.value.filter((bn) => bn !== b.billNo)
-                                                            : [...field.value, b.billNo];
-                                                        field.onChange(newValue);
-                                                    }}
-                                                >
-                                                    <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
-                                                    <div className="flex justify-between w-full">
-                                                        <span>{b.billNo}</span>
-                                                        <span className="text-muted-foreground text-xs">₹{b.netAmount.toLocaleString('en-IN')}</span>
-                                                    </div>
-                                                </CommandItem>
-                                            )
-                                        })}
-                                        </CommandList>
-                                    </CommandGroup>
-                                </Command>
+                                <ScrollArea className="h-72">
+                                    <div className="p-1">
+                                    {unpaidBills.length > 0 ? unpaidBills.map((b) => {
+                                        const isSelected = field.value.includes(b.billNo);
+                                        return (
+                                            <Button
+                                                variant="ghost"
+                                                key={b.id}
+                                                onClick={() => {
+                                                    const newValue = isSelected
+                                                        ? field.value.filter((bn) => bn !== b.billNo)
+                                                        : [...field.value, b.billNo];
+                                                    field.onChange(newValue);
+                                                }}
+                                                className="w-full justify-start"
+                                            >
+                                                <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
+                                                <div className="flex justify-between w-full">
+                                                    <span>{b.billNo}</span>
+                                                    <span className="text-muted-foreground text-xs">₹{b.netAmount.toLocaleString('en-IN')}</span>
+                                                </div>
+                                            </Button>
+                                        )
+                                    }) : <p className="p-2 text-sm text-muted-foreground">No unpaid bills found.</p>}
+                                    </div>
+                                </ScrollArea>
                             </PopoverContent>
                         </Popover>
                         <FormMessage />
                     </FormItem>
                 )}
             />
-            <FormFieldInput name="companyName" label="Company Name" readOnly={true} />
 
             {/* Row 2 */}
             <FormFieldInput name="billDate" label="Bill Date" type="date" readOnly={true}/>
@@ -413,9 +478,6 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             {/* Row 5 */}
             <FormFieldInput name="bankName" label="Bank Name" />
             <FormFieldInput name="mobile" label="Mobile No" readOnly={true}/>
-            <div />
-
-             {/* Row 6 */}
             <FormField
                 control={form.control}
                 name="interestPaid"
@@ -444,5 +506,3 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </Form>
   );
 }
-
-    

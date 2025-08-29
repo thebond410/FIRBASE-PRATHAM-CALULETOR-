@@ -38,7 +38,26 @@ export async function getParties(): Promise<string[]> {
     return uniqueParties as string[];
 }
 
-export async function getUnpaidBillsByParty(party: string): Promise<Bill[]> {
+export async function getCompaniesByParty(party: string): Promise<string[]> {
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+        .from('bills')
+        .select('companyName')
+        .eq('party', party)
+        .order('companyName');
+    
+    if (error) {
+        console.error(`Error fetching companies for party ${party}:`, error);
+        return [];
+    }
+
+    const uniqueCompanies = [...new Set(data.map(item => item.companyName))].filter(c => c);
+    return uniqueCompanies as string[];
+}
+
+export async function getUnpaidBillsByParty(party: string, companyName: string): Promise<Bill[]> {
     const supabase = getSupabaseServerClient();
     if (!supabase) return [];
 
@@ -46,6 +65,7 @@ export async function getUnpaidBillsByParty(party: string): Promise<Bill[]> {
         .from('bills')
         .select('*')
         .eq('party', party)
+        .eq('companyName', companyName)
         .or('interestPaid.is.null,interestPaid.neq.Yes')
         .order('billDate', { ascending: true });
 
@@ -79,11 +99,14 @@ export async function saveBill(bill: Omit<Bill, 'id' | 'created_at' | 'updated_a
   if (!supabase) return { success: false, error: "Supabase not configured." };
 
   const { id, ...billData } = bill;
+  
+  const billDate = parseDate(bill.billDate);
+  const recDate = parseDate(bill.recDate);
 
   const billToSave = {
     ...billData,
-    billDate: bill.billDate ? format(parseDate(bill.billDate)!, 'yyyy-MM-dd') : null,
-    recDate: bill.recDate ? format(parseDate(bill.recDate)!, 'yyyy-MM-dd') : null,
+    billDate: billDate ? format(billDate, 'yyyy-MM-dd') : null,
+    recDate: recDate ? format(recDate, 'yyyy-MM-dd') : null,
   };
 
   try {
