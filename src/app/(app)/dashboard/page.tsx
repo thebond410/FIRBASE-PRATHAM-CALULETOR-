@@ -318,21 +318,21 @@ export default function DashboardPage() {
         {overdueParties.length > 0 ? (
             <div className="grid grid-cols-3 gap-4">
             {overdueParties.map((party, index) => (
-              <Card key={party.party} onClick={() => handlePartyClick(party.party)} className={cn("shadow-md border-0 bg-gradient-to-tr border-l-4 cursor-pointer p-2", partyCardColors[index % partyCardColors.length])}>
-                <CardHeader className="p-4">
-                  <CardTitle className="flex items-center gap-2 text-[12px] truncate">
-                    <User className="h-5 w-5" />
-                    {truncateText(party.party, 18)}
+              <Card key={party.party} onClick={() => handlePartyClick(party.party)} className={cn("shadow-md border-0 bg-gradient-to-tr border-l-4 cursor-pointer", partyCardColors[index % partyCardColors.length])}>
+                <CardHeader className="p-2 pb-1">
+                  <CardTitle className="flex items-center gap-2 text-xs truncate">
+                    <User className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{truncateText(party.party, 18)}</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 text-sm p-4 pt-0">
-                  <div>
+                <CardContent className="grid grid-cols-2 text-sm p-2 pt-1 gap-2">
+                  <div className="flex flex-col">
                     <p className="text-muted-foreground text-xs">Bills</p>
-                    <p className="font-bold text-md">{party.billCount}</p>
+                    <p className="font-bold text-sm">{party.billCount}</p>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Rs.</p>
-                    <p className="font-bold text-[11px]">₹{party.totalAmount.toLocaleString('en-IN')}</p>
+                  <div className="flex flex-col">
+                    <p className="text-muted-foreground text-xs">Amount (Rs.)</p>
+                    <p className="font-bold text-xs truncate">₹{party.totalAmount.toLocaleString('en-IN')}</p>
                   </div>
                 </CardContent>
               </Card>
