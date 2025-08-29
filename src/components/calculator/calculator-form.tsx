@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
   id: z.number().optional(),
@@ -65,6 +66,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   const [parties, setParties] = useState<string[]>([]);
   const [unpaidBills, setUnpaidBills] = useState<Bill[]>([]);
   const [selectedBills, setSelectedBills] = useState<Bill[]>([]);
+  const [isPartyPopoverOpen, setPartyPopoverOpen] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -293,7 +295,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <input id="upload-scan" type="file" accept="image/jpeg, image/png" className="hidden" onChange={handleFileChange} ref={fileInputRef}/>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-4 p-1">
+        <div className="grid grid-cols-3 gap-x-2 gap-y-4 p-1">
             {/* Row 1 */}
             <FormField
                 control={form.control}
@@ -301,35 +303,34 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
                         <FormLabel>Party Name</FormLabel>
-                        <Popover>
+                        <Popover open={isPartyPopoverOpen} onOpenChange={setPartyPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <FormControl>
                                     <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9", !field.value && "text-muted-foreground")}>
-                                        {field.value ? parties.find((p) => p === field.value) : "Select party"}
+                                        {field.value || "Select party"}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </FormControl>
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command>
-                                    <CommandEmpty>No party found.</CommandEmpty>
-                                    <CommandGroup>
-                                        <CommandList>
-                                            {parties.map((p) => (
-                                                <CommandItem
-                                                    value={p}
-                                                    key={p}
-                                                    onSelect={() => {
-                                                        form.setValue("party", p)
-                                                    }}
-                                                >
-                                                    <Check className={cn("mr-2 h-4 w-4", p === field.value ? "opacity-100" : "opacity-0")} />
-                                                    {p}
-                                                </CommandItem>
-                                            ))}
-                                        </CommandList>
-                                    </CommandGroup>
-                                </Command>
+                               <ScrollArea className="h-72">
+                                  <div className="p-1">
+                                    {parties.length > 0 ? parties.map((p) => (
+                                        <Button
+                                            variant="ghost"
+                                            key={p}
+                                            onClick={() => {
+                                                form.setValue("party", p);
+                                                setPartyPopoverOpen(false);
+                                            }}
+                                            className="w-full justify-start"
+                                        >
+                                            <Check className={cn("mr-2 h-4 w-4", p === field.value ? "opacity-100" : "opacity-0")} />
+                                            {p}
+                                        </Button>
+                                    )) : <p className="p-2 text-sm text-muted-foreground">No parties found.</p>}
+                                  </div>
+                               </ScrollArea>
                             </PopoverContent>
                         </Popover>
                         <FormMessage />
@@ -360,7 +361,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                 <Command>
                                     <CommandInput placeholder="Search bills..." />
-                                    <CommandEmpty>No unpaid bills found.</CommandEmpty>
+                                    <CommandEmpty>No unpaid bills found for this party.</CommandEmpty>
                                     <CommandGroup>
                                         <CommandList>
                                         {unpaidBills.map((b) => {
