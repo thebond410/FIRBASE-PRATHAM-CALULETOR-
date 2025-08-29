@@ -10,12 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, XCircle, Database, FileText, MessageSquare, Type, Columns, Pin, Copy, RefreshCw } from "lucide-react";
+import { KeyRound, Eye, EyeOff, CheckCircle2, AlertTriangle, XCircle, Database, FileText, MessageSquare, Type, Columns, Pin, Copy, RefreshCw, Bot } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { billTableColumns, BillTableColumn } from "@/lib/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { getSupabaseClient } from "@/lib/supabase";
+import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
   apiKey: z.string().min(1, "API Key is required."),
@@ -27,6 +28,7 @@ const formSchema = z.object({
   billListFontSize: z.coerce.number().min(8).max(24),
   visibleColumns: z.array(z.string()),
   frozenColumns: z.array(z.string()),
+  askForWhatsappOnSave: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -76,6 +78,7 @@ CREATE TABLE settings (
   bill_list_font_size INT,
   visible_columns TEXT[],
   frozen_columns TEXT[],
+  ask_for_whatsapp_on_save BOOLEAN,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -108,6 +111,7 @@ export function SettingsForm() {
       billListFontSize: 11,
       visibleColumns: defaultVisibleColumns,
       frozenColumns: [],
+      askForWhatsappOnSave: true,
     },
   });
 
@@ -148,6 +152,12 @@ export function SettingsForm() {
         form.setValue("visibleColumns", visibleColumns || defaultVisibleColumns);
         form.setValue("frozenColumns", frozenColumns || []);
       }
+      
+      const storedAskForWhatsapp = localStorage.getItem("askForWhatsappOnSave");
+      if (storedAskForWhatsapp) {
+        form.setValue("askForWhatsappOnSave", JSON.parse(storedAskForWhatsapp));
+      }
+
 
     } catch (error) {
         console.error("Could not access localStorage", error)
@@ -156,7 +166,7 @@ export function SettingsForm() {
 
   useEffect(() => {
     loadSettingsFromLocalStorage();
-  }, [defaultVisibleColumns]);
+  }, [defaultVisibleColumns, form]);
 
 
   const loadSettingsFromSupabase = async () => {
@@ -183,6 +193,7 @@ export function SettingsForm() {
             form.setValue("billListFontSize", data.bill_list_font_size || 11);
             form.setValue("visibleColumns", data.visible_columns || defaultVisibleColumns);
             form.setValue("frozenColumns", data.frozen_columns || []);
+            form.setValue("askForWhatsappOnSave", data.ask_for_whatsapp_on_save ?? true);
             onSubmit(form.getValues(), false); // Save to local storage after fetching
             toast({ title: "Settings Loaded", description: "Successfully loaded settings from Supabase." });
         }
@@ -215,6 +226,8 @@ export function SettingsForm() {
         frozenColumns: values.frozenColumns,
       };
       localStorage.setItem("billListColumnConfig", JSON.stringify(columnConfig));
+      localStorage.setItem("askForWhatsappOnSave", JSON.stringify(values.askForWhatsappOnSave));
+      
       setApiStatus("success");
 
       if (saveToSupabase) {
@@ -232,6 +245,7 @@ export function SettingsForm() {
                         bill_list_font_size: values.billListFontSize,
                         visible_columns: values.visibleColumns,
                         frozen_columns: values.frozenColumns,
+                        ask_for_whatsapp_on_save: values.askForWhatsappOnSave,
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', 1);
@@ -321,6 +335,40 @@ export function SettingsForm() {
                 <CurrentStatus.icon className="h-4 w-4" />
                 <span>{CurrentStatus.text}</span>
             </div>
+          </div>
+        </div>
+        
+        <div className="shadow-none border-0 p-0">
+          <div className="p-0 pb-4">
+            <div className="flex items-center gap-3">
+                <Bot className="h-6 w-6 text-primary"/>
+                <div>
+                    <h2 className="text-lg font-bold">Automation</h2>
+                    <p className="text-sm text-muted-foreground">Configure automated actions within the app.</p>
+                </div>
+            </div>
+          </div>
+          <div className="space-y-4 p-0">
+            <FormField
+              control={form.control}
+              name="askForWhatsappOnSave"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                        <FormLabel>WhatsApp Prompt on Save</FormLabel>
+                        <FormDescription>
+                            If enabled, you will be prompted to send a WhatsApp message after saving a bill.
+                        </FormDescription>
+                    </div>
+                    <FormControl>
+                        <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                        />
+                    </FormControl>
+                </FormItem>
+              )}
+            />
           </div>
         </div>
         

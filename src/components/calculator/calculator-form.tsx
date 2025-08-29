@@ -5,21 +5,31 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Bill } from "@/lib/types";
+import { Bill, CalculatedBill } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { differenceInDays, parse, format, addDays } from "date-fns";
+import { format } from "date-fns";
 import { Camera, Loader2, Save, Upload, Check, ChevronsUpDown, X } from "lucide-react";
 import { scanCheque } from "@/app/actions";
 import { Label } from "@/components/ui/label";
 import { saveBill, getParties, getUnpaidBillsByParty, getCompaniesByParty } from "@/lib/data";
 import { useRouter } from "next/navigation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { cn, calculateBillDetails, parseDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const formSchema = z.object({
   id: z.number().optional(),
@@ -38,16 +48,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-
-const parseDate = (dateStr: string | null | undefined): Date | null => {
-    if (!dateStr) return null;
-    const formats = ['yyyy-MM-dd', 'dd/MM/yyyy'];
-    for (const fmt of formats) {
-        const parsed = parse(dateStr, fmt, new Date());
-        if (!isNaN(parsed.getTime())) return parsed;
-    }
-    return null;
-}
 
 const formatDateForInput = (date: Date | string | null | undefined): string => {
     if (!date) return "";
@@ -71,6 +71,15 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   const [isCompanyPopoverOpen, setCompanyPopoverOpen] = useState(false);
   const [isBillNoPopoverOpen, setBillNoPopoverOpen] = useState(false);
 
+  const [isWhatsAppAlertOpen, setWhatsAppAlertOpen] = useState(false);
+  const [billForWhatsApp, setBillForWhatsApp] = useState<CalculatedBill | null>(null);
+  const [askForWhatsapp, setAskForWhatsapp] = useState(true);
+  const [whatsappTemplates, setWhatsappTemplates] = useState({
+    noRecDate: ``,
+    pendingInterest: ``,
+    paymentThanks: ``
+  });
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -91,21 +100,26 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
   const { control, setValue, getValues } = form;
 
-  // Watch only the fields needed for calculation to avoid unnecessary re-renders
-  const watchedBillDate = useWatch({ control, name: 'billDate' });
-  const watchedRecDate = useWatch({ control, name: 'recDate' });
-  const watchedCreditDays = useWatch({ control, name: 'creditDays' });
-  const watchedNetAmount = useWatch({ control, name: 'netAmount' });
-  
-  const watchedParty = useWatch({ control, name: 'party' });
-  const watchedBillNos = useWatch({ control, name: 'billNos' });
-  const watchedCompanyName = useWatch({ control, name: 'companyName'});
+  const watchedValues = useWatch({ control });
 
   const [totalDays, setTotalDays] = useState(0);
   const [interestDays, setInterestDays] = useState(0);
   const [interestAmount, setInterestAmount] = useState(0);
 
   useEffect(() => {
+    try {
+      const storedAsk = localStorage.getItem("askForWhatsappOnSave");
+      if (storedAsk) {
+        setAskForWhatsapp(JSON.parse(storedAsk));
+      }
+       const storedTemplates = localStorage.getItem("whatsappTemplates");
+        if (storedTemplates) {
+            setWhatsappTemplates(JSON.parse(storedTemplates));
+        }
+    } catch (error) {
+        console.error("Could not read from localStorage", error);
+    }
+
     const fetchParties = async () => {
       const partyList = await getParties();
       setParties(partyList);
@@ -123,39 +137,40 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
 
   useEffect(() => {
     const fetchCompanies = async () => {
-        if(watchedParty) {
-            const companyList = await getCompaniesByParty(watchedParty);
+        if(watchedValues.party) {
+            const companyList = await getCompaniesByParty(watchedValues.party);
             setCompanies(companyList);
+            if (!bill && companyList.length > 0 && watchedValues.companyName !== companyList[0]) {
+              // No need to auto-select company, user should do it.
+            }
         }
     };
     
-    // Only fetch if the party has actually changed from the initial/previous state
-    if (watchedParty && watchedParty !== getValues('party')) {
+    if (watchedValues.party && (watchedValues.party !== getValues('party') || companies.length === 0)) {
         resetCompanyAndBills();
     }
     
-    if(watchedParty) {
+    if(watchedValues.party) {
         fetchCompanies();
     } else {
         setCompanies([]);
     }
-
-  }, [watchedParty, resetCompanyAndBills, getValues]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedValues.party]);
 
 
   useEffect(() => {
     const fetchBills = async () => {
-      if (watchedParty && watchedCompanyName) {
-        const bills = await getUnpaidBillsByParty(watchedParty, watchedCompanyName);
+      if (watchedValues.party && watchedValues.companyName) {
+        const bills = await getUnpaidBillsByParty(watchedValues.party, watchedValues.companyName);
         setUnpaidBills(bills);
       } else {
         setUnpaidBills([]);
       }
     };
     
-    if (watchedParty && watchedCompanyName) {
-         // If company changes, reset selected bills
-        if(watchedCompanyName !== getValues('companyName')) {
+    if (watchedValues.party && watchedValues.companyName) {
+        if(watchedValues.companyName !== getValues('companyName')) {
             setValue("billNos", []);
             setSelectedBills([]);
         }
@@ -163,10 +178,11 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     } else {
       setUnpaidBills([]);
     }
-  }, [watchedParty, watchedCompanyName, setValue, getValues]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedValues.party, watchedValues.companyName]);
 
   useEffect(() => {
-    const newSelectedBills = unpaidBills.filter(b => watchedBillNos?.includes(b.billNo));
+    const newSelectedBills = unpaidBills.filter(b => watchedValues.billNos?.includes(b.billNo));
     setSelectedBills(newSelectedBills);
     
     if (newSelectedBills.length > 0) {
@@ -185,35 +201,39 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       
       setValue("creditDays", newSelectedBills[0].creditDays);
       setValue("mobile", newSelectedBills[0].mobile || "");
-    } else if (!bill) { // Only reset if it's a new entry form
+    } else if (!bill) {
       setValue("netAmount", 0);
       setValue("billDate", "");
       setValue("creditDays", 30);
       setValue("mobile", "");
     }
-  }, [watchedBillNos, unpaidBills, setValue, bill]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedValues.billNos, unpaidBills, setValue, bill]);
 
 
   useEffect(() => {
-    const billDate = parseDate(watchedBillDate);
-    const recDate = parseDate(watchedRecDate);
+    const billDate = parseDate(watchedValues.billDate);
+    const recDate = parseDate(watchedValues.recDate);
     
     if (billDate) {
-      const endOfPeriod = recDate || new Date();
-      const total = differenceInDays(endOfPeriod, billDate);
-      setTotalDays(total > 0 ? total : 0);
-
-      const interest = Math.max(0, total - (watchedCreditDays || 0));
-      setInterestDays(interest);
-      
-      const amount = (watchedNetAmount * 0.1717 / 365) * interest;
-      setInterestAmount(Math.round(amount > 0 ? amount : 0));
+        const calculatedDetails = calculateBillDetails({
+            ...getValues(),
+            id: 0, // Mock id
+            billNo: getValues('billNos').join(','),
+            billDate: getValues('billDate') || '',
+            recDate: getValues('recDate'),
+            pes: '', meter: '', rate: 0 // Mock data
+        });
+        
+        setTotalDays(calculatedDetails.totalDays);
+        setInterestDays(calculatedDetails.interestDays);
+        setInterestAmount(Math.round(calculatedDetails.interestAmount));
     } else {
       setTotalDays(0);
       setInterestDays(0);
       setInterestAmount(0);
     }
-  }, [watchedBillDate, watchedRecDate, watchedCreditDays, watchedNetAmount]);
+  }, [watchedValues.billDate, watchedValues.recDate, watchedValues.creditDays, watchedValues.netAmount, getValues]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -237,7 +257,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       const result = await scanCheque({ photoDataUri: dataUri });
       if (result.success && result.data) {
         const { partyName, date, amount, chequeNumber, bankName } = result.data;
-        setValue("party", partyName);
+        setValue("party", partyName, { shouldValidate: true, shouldDirty: true });
         if (date) {
             const parsed = parseDate(date);
             if(parsed) setValue("recDate", format(parsed, 'yyyy-MM-dd'));
@@ -260,6 +280,46 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     }
   };
 
+  const handleSendWhatsApp = () => {
+    if (!billForWhatsApp) return;
+
+    let templateKey: keyof typeof whatsappTemplates;
+    
+    if (!billForWhatsApp.recDate) {
+      templateKey = 'noRecDate';
+    } else if (billForWhatsApp.interestPaid === 'No') {
+      templateKey = 'pendingInterest';
+    } else {
+      templateKey = 'paymentThanks';
+    }
+
+    const template = whatsappTemplates[templateKey];
+
+    const message = template
+      .replace(/\[Party\]/g, billForWhatsApp.party)
+      .replace(/\[Bill No\]/g, billForWhatsApp.billNo)
+      .replace(/\[Bill Date\]/g, billForWhatsApp.billDate ? format(new Date(billForWhatsApp.billDate), 'dd/MM/yy') : '')
+      .replace(/\[Netamount\]/g, billForWhatsApp.netAmount.toLocaleString('en-IN'))
+      .replace(/\[Total Days\]/g, billForWhatsApp.totalDays.toString())
+      .replace(/\[interest days\]/g, billForWhatsApp.interestDays.toString())
+      .replace(/\[Interest amt\]/g, billForWhatsApp.interestAmount.toFixed(2))
+      .replace(/\[Company\]/g, billForWhatsApp.companyName)
+      .replace(/\[Recamount\]/g, billForWhatsApp.recAmount.toLocaleString('en-IN'))
+      .replace(/\[Rec Date\]/g, billForWhatsApp.recDate ? format(new Date(billForWhatsApp.recDate), 'dd/MM/yy') : '')
+      .replace(/\[Interest Days\]/g, billForWhatsApp.interestDays.toString())
+      .replace(/\[Interest Amount\]/g, billForWhatsApp.interestAmount.toFixed(2));
+
+    const whatsappUrl = `https://wa.me/${billForWhatsApp.mobile}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    setWhatsAppAlertOpen(false);
+    router.push('/bill-list');
+  };
+  
+  const handleNoWhatsApp = () => {
+      setWhatsAppAlertOpen(false);
+      router.push('/bill-list');
+  };
+
 
   async function onSubmit(values: FormValues) {
     if (selectedBills.length === 0 && !bill) {
@@ -273,15 +333,16 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     const totalNetAmount = billsToUpdate.reduce((sum, b) => sum + b.netAmount, 0);
     
     let successCount = 0;
+    let firstUpdatedBillForWhatsapp: Bill | null = null;
     
     for (const sBill of billsToUpdate) {
-        const proportion = totalNetAmount > 0 ? sBill.netAmount / totalNetAmount : 0;
+        const proportion = totalNetAmount > 0 ? sBill.netAmount / totalNetAmount : (1 / billsToUpdate.length);
         const distributedRecAmount = values.recAmount * proportion;
         
         const billDataToSave = {
             ...sBill,
             recDate: values.recDate,
-            recAmount: distributedRecAmount, // Proportional amount
+            recAmount: distributedRecAmount,
             chequeNumber: values.chequeNumber || "",
             bankName: values.bankName || "",
             interestPaid: values.interestPaid,
@@ -290,11 +351,13 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             companyName: values.companyName || "",
             mobile: values.mobile || "",
         };
-
-        // @ts-ignore
+        
         const result = await saveBill(billDataToSave);
         if(result.success) {
             successCount++;
+            if (!firstUpdatedBillForWhatsapp) {
+                firstUpdatedBillForWhatsapp = billDataToSave;
+            }
         } else {
              toast({
                 title: `Save Failed for Bill ${sBill.billNo}`,
@@ -309,7 +372,28 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         title: "Bills Updated",
         description: `${successCount} bill(s) have been successfully updated.`,
       });
-      router.push('/bill-list');
+      
+      if (askForWhatsapp && firstUpdatedBillForWhatsapp) {
+         const calculated = calculateBillDetails(firstUpdatedBillForWhatsapp);
+         // If multiple bills are updated, create a summary for WhatsApp
+         if (billsToUpdate.length > 1) {
+             const combinedBillNo = billsToUpdate.map(b => b.billNo).join(', ');
+             const summaryBill: CalculatedBill = {
+                 ...calculated,
+                 billNo: combinedBillNo,
+                 netAmount: totalNetAmount,
+                 recAmount: values.recAmount,
+             };
+             setBillForWhatsApp(summaryBill);
+         } else {
+            setBillForWhatsApp(calculated);
+         }
+
+         setWhatsAppAlertOpen(true);
+
+      } else {
+        router.push('/bill-list');
+      }
     }
   }
   
@@ -321,7 +405,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <FormItem>
                 <FormLabel className="text-[11px]">{label}</FormLabel>
                 <FormControl>
-                    <Input {...field} type={type} readOnly={readOnly} className={cn("h-9 text-[11px]", readOnly && "bg-muted")} value={field.value ?? ""} />
+                    <Input {...field} type={type} readOnly={readOnly} className={cn("h-9 text-[11px]", readOnly && "bg-muted")} value={field.value ?? ""} onChange={(e) => field.onChange( e.target.value)} />
                 </FormControl>
                 <FormMessage />
             </FormItem>
@@ -337,6 +421,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   )
 
   return (
+    <>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1">
         <div className="flex justify-end gap-2 p-1">
@@ -377,9 +462,8 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                             variant="ghost"
                                             key={p}
                                             onClick={() => {
-                                                setValue("party", p, { shouldDirty: true });
+                                                field.onChange(p);
                                                 setPartyPopoverOpen(false);
-                                                // Manually trigger dependent field updates
                                                 resetCompanyAndBills();
                                             }}
                                             className="w-full justify-start text-left h-auto py-2 text-[11px]"
@@ -403,7 +487,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                     <FormItem className="flex flex-col">
                         <FormLabel className="text-[11px]">Company Name</FormLabel>
                         <Popover open={isCompanyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
-                            <PopoverTrigger asChild disabled={!watchedParty}>
+                            <PopoverTrigger asChild disabled={!watchedValues.party}>
                                 <FormControl>
                                     <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9 text-[11px]", !field.value && "text-muted-foreground")}>
                                         <span className="truncate">{field.value || "Select company"}</span>
@@ -419,7 +503,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                             variant="ghost"
                                             key={c}
                                             onClick={() => {
-                                                setValue("companyName", c, { shouldDirty: true });
+                                                field.onChange(c);
                                                 setCompanyPopoverOpen(false);
                                                 setValue("billNos", []);
                                                 setSelectedBills([]);
@@ -445,7 +529,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                     <FormItem>
                         <FormLabel className="text-[11px]">Bill No(s)</FormLabel>
                         <Popover open={isBillNoPopoverOpen} onOpenChange={setBillNoPopoverOpen}>
-                            <PopoverTrigger asChild disabled={!watchedCompanyName}>
+                            <PopoverTrigger asChild disabled={!watchedValues.companyName}>
                                 <FormControl>
                                     <Button variant="outline" className="w-full justify-between h-9 font-normal text-[11px]">
                                         <div className="flex flex-grow flex-wrap gap-1 items-center" style={{minHeight: '1rem'}}>
@@ -499,13 +583,37 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <InfoField label="Total Days" value={totalDays}/>
 
             {/* Row 3 */}
-            <FormFieldInput name="creditDays" label="Credit Days" type="number" />
+            <FormField
+                control={control}
+                name="creditDays"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-[11px]">Credit Days</FormLabel>
+                        <FormControl>
+                            <Input {...field} type="number" className="h-9 text-[11px]" onChange={(e) => field.onChange(e.target.valueAsNumber || 0)} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
             <InfoField label="Interest Days" value={interestDays}/>
             <InfoField label="Interest Amount (₹)" value={interestAmount.toLocaleString('en-IN')}/>
             
             {/* Row 4 */}
             <FormFieldInput name="recDate" label="Receipt Date" type="date"/>
-            <FormFieldInput name="recAmount" label="Receipt Amount" type="number"/>
+             <FormField
+                control={control}
+                name="recAmount"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel className="text-[11px]">Receipt Amount</FormLabel>
+                        <FormControl>
+                            <Input {...field} type="number" className="h-9 text-[11px]" onChange={(e) => field.onChange(e.target.valueAsNumber || 0)} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
             <FormFieldInput name="chequeNumber" label="Cheque No" />
 
             {/* Row 5 */}
@@ -537,5 +645,24 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         </div>
       </form>
     </Form>
+    <AlertDialog open={isWhatsAppAlertOpen} onOpenChange={setWhatsAppAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send WhatsApp Message?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The bill has been saved. Would you like to send a confirmation message to {billForWhatsApp?.party}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleNoWhatsApp}>No</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSendWhatsApp}>
+              Yes, Send Message
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
+
+    
