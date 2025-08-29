@@ -206,9 +206,8 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       const dataUri = reader.result as string;
       const result = await scanCheque({ photoDataUri: dataUri });
       if (result.success && result.data) {
-        const { partyName, companyName, date, amount, chequeNumber, bankName } = result.data;
+        const { partyName, date, amount, chequeNumber, bankName } = result.data;
         form.setValue("party", partyName);
-        form.setValue("companyName", companyName);
         if (date) {
             const parsed = parseDate(date);
             if(parsed) form.setValue("recDate", format(parsed, 'yyyy-MM-dd'));
@@ -506,5 +505,3 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </Form>
   );
 }
-
-    

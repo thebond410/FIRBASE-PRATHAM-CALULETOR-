@@ -22,7 +22,6 @@ export type ExtractChequeDataInput = z.infer<typeof ExtractChequeDataInputSchema
 
 const ExtractChequeDataOutputSchema = z.object({
   partyName: z.string().describe('The name of the party to whom the cheque is payable. This is the text written after the "For" or "FOR" label.'),
-  companyName: z.string().describe('The name of the company that issued the cheque. This is the text written after the "Pay" or "PAY" label.'),
   date: z.string().describe('The date on the cheque in DD/MM/YYYY format.'),
   amount: z.string().describe('The numerical amount on the cheque.'),
   chequeNumber: z.string().describe('The cheque number.'),
@@ -40,11 +39,12 @@ const prompt = ai.definePrompt({
   output: {schema: ExtractChequeDataOutputSchema},
   prompt: `Analyze the provided cheque image and extract the information. Adhere to the following instructions precisely for each field:
 - partyName: Find the label "For" or "FOR" and extract the full name of the payee written next to it.
-- companyName: Find the label "Pay" or "PAY" and extract the full name of the company written next to it.
 - date: Find the date on the cheque and provide it in DD/MM/YYYY format.
 - amount: Extract only the numerical value of the cheque amount.
 - chequeNumber: Extract the cheque number.
 - bankName: Extract the name of the bank.
+
+Do NOT extract the company name who issued the cheque (the name after "Pay" or "PAY").
 
 Return the data as a JSON object. If a field is not found or is unclear, return an empty string for that field.
 
