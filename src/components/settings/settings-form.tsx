@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -280,17 +279,17 @@ export function SettingsForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <Card className="shadow-none border-0 p-0">
-          <CardHeader className="p-0 pb-4">
+        <div className="shadow-none border-0 p-0">
+          <div className="p-0 pb-4">
             <div className="flex items-center gap-3">
                 <KeyRound className="h-6 w-6 text-primary"/>
                 <div>
-                    <CardTitle className="text-lg font-bold">Gemini API Configuration</CardTitle>
-                    <CardDescription>Enter your API key to enable the cheque scanning feature.</CardDescription>
+                    <h2 className="text-lg font-bold">Gemini API Configuration</h2>
+                    <p className="text-sm text-muted-foreground">Enter your API key to enable the cheque scanning feature.</p>
                 </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4 p-0">
+          </div>
+          <div className="space-y-4 p-0">
             <FormField
               control={form.control}
               name="apiKey"
@@ -322,20 +321,20 @@ export function SettingsForm() {
                 <CurrentStatus.icon className="h-4 w-4" />
                 <span>{CurrentStatus.text}</span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
         
-        <Card className="shadow-none border-0 p-0">
-          <CardHeader className="p-0 pb-4">
+        <div className="shadow-none border-0 p-0">
+          <div className="p-0 pb-4">
             <div className="flex items-center gap-3">
                 <Type className="h-6 w-6 text-primary"/>
                 <div>
-                    <CardTitle className="text-lg font-bold">Appearance</CardTitle>
-                    <CardDescription>Customize the look and feel of the application.</CardDescription>
+                    <h2 className="text-lg font-bold">Appearance</h2>
+                    <p className="text-sm text-muted-foreground">Customize the look and feel of the application.</p>
                 </div>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4 p-0">
+          </div>
+          <div className="space-y-4 p-0">
             <FormField
               control={form.control}
               name="billListFontSize"
@@ -349,20 +348,20 @@ export function SettingsForm() {
                 </FormItem>
               )}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="shadow-none border-0 p-0">
-            <CardHeader className="p-0 pb-4">
+        <div className="shadow-none border-0 p-0">
+            <div className="p-0 pb-4">
                 <div className="flex items-center gap-3">
                     <Columns className="h-6 w-6 text-primary"/>
                     <div>
-                        <CardTitle className="text-lg font-bold">Column Visibility</CardTitle>
-                        <CardDescription>Select which columns to display in the bill list.</CardDescription>
+                        <h2 className="text-lg font-bold">Column Visibility</h2>
+                        <p className="text-sm text-muted-foreground">Select which columns to display in the bill list.</p>
                     </div>
                 </div>
-            </CardHeader>
-            <CardContent className="p-0">
+            </div>
+            <div className="p-0">
                  <FormField
                     control={form.control}
                     name="visibleColumns"
@@ -407,20 +406,20 @@ export function SettingsForm() {
                         </FormItem>
                     )}
                 />
-            </CardContent>
-        </Card>
+            </div>
+        </div>
 
-        <Card className="shadow-none border-0 p-0">
-            <CardHeader className="p-0 pb-4">
+        <div className="shadow-none border-0 p-0">
+            <div className="p-0 pb-4">
                 <div className="flex items-center gap-3">
                     <Pin className="h-6 w-6 text-primary"/>
                     <div>
-                        <CardTitle className="text-lg font-bold">Column Freezing</CardTitle>
-                        <CardDescription>Select up to 3 columns to freeze on the left side of the table.</CardDescription>
+                        <h2 className="text-lg font-bold">Column Freezing</h2>
+                        <p className="text-sm text-muted-foreground">Select up to 3 columns to freeze on the left side of the table.</p>
                     </div>
                 </div>
-            </CardHeader>
-            <CardContent className="p-0">
+            </div>
+            <div className="p-0">
                 <FormField
                     control={form.control}
                     name="frozenColumns"
@@ -468,20 +467,20 @@ export function SettingsForm() {
                         </FormItem>
                     )}
                 />
-            </CardContent>
-        </Card>
+            </div>
+        </div>
 
-        <Card className="shadow-none border-0 p-0">
-            <CardHeader className="p-0 pb-4">
+        <div className="shadow-none border-0 p-0">
+            <div className="p-0 pb-4">
                 <div className="flex items-center gap-3">
                     <Database className="h-6 w-6 text-primary"/>
                     <div>
-                        <CardTitle className="text-lg font-bold">Supabase Configuration</CardTitle>
-                        <CardDescription>Enter your Supabase URL and Key to save data. Settings can be synced with the cloud.</CardDescription>
+                        <h2 className="text-lg font-bold">Supabase Configuration</h2>
+                        <p className="text-sm text-muted-foreground">Enter your Supabase URL and Key to save data. Settings can be synced with the cloud.</p>
                     </div>
                 </div>
-            </CardHeader>
-            <CardContent className="space-y-4 p-0">
+            </div>
+            <div className="space-y-4 p-0">
                 <FormField
                     control={form.control}
                     name="supabaseUrl"
@@ -525,8 +524,8 @@ export function SettingsForm() {
                     <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
                     {isSyncing ? 'Loading...' : 'Load from Supabase'}
                 </Button>
-            </CardContent>
-             <CardFooter className="flex-col items-start gap-2 p-0 pt-4">
+            </div>
+             <div className="flex-col items-start gap-2 p-0 pt-4">
                 <Label>SQL Table Scripts</Label>
                 <div className="flex gap-2">
                     <Button type="button" variant="outline" onClick={() => setShowSql(showSql === 'bills' ? null : 'bills')}>
@@ -546,20 +545,20 @@ export function SettingsForm() {
                         </Button>
                     </div>
                 )}
-             </CardFooter>
-        </Card>
+             </div>
+        </div>
 
-        <Card className="shadow-none border-0 p-0">
-            <CardHeader className="p-0 pb-4">
+        <div className="shadow-none border-0 p-0">
+            <div className="p-0 pb-4">
                 <div className="flex items-center gap-3">
                     <MessageSquare className="h-6 w-6 text-primary"/>
                     <div>
-                        <CardTitle className="text-lg font-bold">WhatsApp Templates</CardTitle>
-                        <CardDescription>Edit the templates for WhatsApp messages. Available placeholders: <br/><code className="text-xs font-mono p-1 bg-muted rounded-sm">{placeholders}</code></CardDescription>
+                        <h2 className="text-lg font-bold">WhatsApp Templates</h2>
+                        <p className="text-sm text-muted-foreground">Edit the templates for WhatsApp messages. Available placeholders: <br/><code className="text-xs font-mono p-1 bg-muted rounded-sm">{placeholders}</code></p>
                     </div>
                 </div>
-            </CardHeader>
-            <CardContent className="space-y-4 p-0">
+            </div>
+            <div className="space-y-4 p-0">
                  <FormField
                     control={form.control}
                     name="noRecDateTemplate"
@@ -593,8 +592,8 @@ export function SettingsForm() {
                         </FormItem>
                     )}
                 />
-            </CardContent>
-        </Card>
+            </div>
+        </div>
 
         <div className="flex justify-end pt-4">
             <Button type="submit" size="lg" disabled={isSyncing}>
@@ -605,3 +604,5 @@ export function SettingsForm() {
     </Form>
   );
 }
+
+    

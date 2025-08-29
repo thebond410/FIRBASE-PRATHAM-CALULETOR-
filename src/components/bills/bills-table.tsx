@@ -297,7 +297,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
                                 key={col.id}
                                 style={isFrozen ? frozenColumnStyles[col.id] : {}}
                                 className={cn(
-                                    'font-bold px-1 whitespace-nowrap py-1',
+                                    'font-bold px-1 whitespace-nowrap py-1 text-black',
                                     col.id === 'totalDays' ? 'text-red-600 dark:text-red-400' : 'text-black',
                                     isFrozen && 'sticky z-10 text-purple-800 dark:text-purple-300',
                                     isFrozen && (selectedBillId === bill.id ? 'bg-yellow-200 dark:bg-yellow-800' : rowClass)
@@ -351,3 +351,5 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     </>
   );
 }
+
+    
