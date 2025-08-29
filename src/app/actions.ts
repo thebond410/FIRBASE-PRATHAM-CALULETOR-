@@ -87,28 +87,32 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
     
     const billsFromFile: Omit<Bill, 'id' | 'created_at' | 'updated_at'>[] = [];
 
-    for (const billData of jsonData) {
+    for (const row of jsonData) {
         // Create a mapping of lowercase, space-removed header names to their original keys
         const keyMap: { [key: string]: string } = {};
-        for (const key in billData) {
+        for (const key in row) {
             keyMap[key.replace(/\s+/g, '').toLowerCase()] = key;
         }
 
-        // Helper function to safely get values using the mapped keys
-        const getValue = (key: string) => {
-            const mappedKey = keyMap[key.toLowerCase().replace(/\s+/g, '')];
-            const value = mappedKey ? billData[mappedKey] : undefined;
-            // Ensure empty strings are treated as null
-            return value === '' ? null : value;
+        // Helper function to safely get values using the mapped keys, trying multiple variations
+        const getValue = (...keys: string[]) => {
+            for (const key of keys) {
+                const mappedKey = keyMap[key.toLowerCase().replace(/\s+/g, '')];
+                if (mappedKey && row[mappedKey] !== null && row[mappedKey] !== undefined) {
+                    const value = row[mappedKey];
+                     return value === '' ? null : value;
+                }
+            }
+            return null;
         };
 
-        const parsedDate = parseDate(getValue('billDate'));
+        const parsedDate = parseDate(getValue('billDate', 'billdate'));
         if (!parsedDate) {
-            console.warn(`Skipping row due to invalid billDate format: ${JSON.stringify(billData)}. Expected dd/MM/yyyy.`);
+            console.warn(`Skipping row due to invalid billDate format: ${JSON.stringify(row)}. Expected dd/MM/yyyy.`);
             continue;
         }
         
-        const recDateValue = getValue('recDate');
+        const recDateValue = getValue('recDate', 'recdate');
         // Parse recDate. If it's empty, null, or invalid, it will result in null.
         const parsedRecDate = parseDate(String(recDateValue));
 
@@ -116,16 +120,16 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         billsFromFile.push({
             billDate: format(parsedDate, 'yyyy-MM-dd'),
             recDate: parsedRecDate ? format(parsedRecDate, 'yyyy-MM-dd') : null,
-            billNo: String(getValue('billNo') || ''),
-            party: String(getValue('party') || ''),
-            companyName: String(getValue('companyName') || getValue('company') || ''),
-            mobile: String(getValue('mobile') || ''),
-            chequeNumber: String(getValue('chequeNumber') || getValue('chqno') || ''),
-            bankName: String(getValue('bankName') || ''),
-            interestPaid: getValue('interestPaid') === 'Yes' ? 'Yes' : 'No',
-            netAmount: parseFloat(String(getValue('netAmount'))) || 0,
-            creditDays: parseInt(String(getValue('creditDays'))) || 0,
-            recAmount: parseFloat(String(getValue('recAmount'))) || 0,
+            billNo: String(getValue('billNo', 'billnumber', 'bill#') || ''),
+            party: String(getValue('party', 'partyName') || ''),
+            companyName: String(getValue('companyName', 'company') || ''),
+            mobile: String(getValue('mobile', 'mobileno') || ''),
+            chequeNumber: String(getValue('chequeNumber', 'chqno', 'chequeno') || ''),
+            bankName: String(getValue('bankName', 'bank') || ''),
+            interestPaid: getValue('interestPaid', 'intpaid') === 'Yes' ? 'Yes' : 'No',
+            netAmount: parseFloat(String(getValue('netAmount', 'netamt'))) || 0,
+            creditDays: parseInt(String(getValue('creditDays', 'crDays'))) || 0,
+            recAmount: parseFloat(String(getValue('recAmount', 'recamt'))) || 0,
             pes: String(getValue('pes') || ''),
             meter: String(getValue('meter') || ''),
             rate: parseFloat(String(getValue('rate'))) || 0
@@ -146,5 +150,3 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
         return { success: false, error: `Database insert failed: ${err.message}` };
     }
 }
-
-    
