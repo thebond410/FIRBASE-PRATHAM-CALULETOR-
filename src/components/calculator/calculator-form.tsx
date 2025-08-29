@@ -290,9 +290,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         name={name}
         render={({ field }) => (
             <FormItem>
-                <FormLabel>{label}</FormLabel>
+                <FormLabel className="text-[11px]">{label}</FormLabel>
                 <FormControl>
-                    <Input {...field} type={type} readOnly={readOnly} className={cn("h-9", readOnly && "bg-muted")} value={field.value ?? ""} />
+                    <Input {...field} type={type} readOnly={readOnly} className={cn("h-9 text-[11px]", readOnly && "bg-muted")} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
             </FormItem>
@@ -302,8 +302,8 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   
   const InfoField = ({ label, value }: { label: string; value: string | number }) => (
      <div className="space-y-2">
-        <Label>{label}</Label>
-        <Input value={value} readOnly className="font-bold bg-muted h-9" />
+        <Label className="text-[11px]">{label}</Label>
+        <Input value={value} readOnly className="font-bold bg-muted h-9 text-[11px]" />
     </div>
   )
 
@@ -330,11 +330,11 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 name="party"
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
-                        <FormLabel>Party Name</FormLabel>
+                        <FormLabel className="text-[11px]">Party Name</FormLabel>
                         <Popover open={isPartyPopoverOpen} onOpenChange={setPartyPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <FormControl>
-                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9", !field.value && "text-muted-foreground")}>
+                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9 text-[11px]", !field.value && "text-muted-foreground")}>
                                         {field.value || "Select party"}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
@@ -351,7 +351,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                                 form.setValue("party", p);
                                                 setPartyPopoverOpen(false);
                                             }}
-                                            className="w-full justify-start text-left h-auto py-2"
+                                            className="w-full justify-start text-left h-auto py-2 text-[11px]"
                                         >
                                             <Check className={cn("mr-2 h-4 w-4", p === field.value ? "opacity-100" : "opacity-0")} />
                                             {p}
@@ -370,11 +370,11 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 name="companyName"
                 render={({ field }) => (
                     <FormItem className="flex flex-col">
-                        <FormLabel>Company Name</FormLabel>
+                        <FormLabel className="text-[11px]">Company Name</FormLabel>
                         <Popover open={isCompanyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
                             <PopoverTrigger asChild disabled={!watchedParty}>
                                 <FormControl>
-                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9", !field.value && "text-muted-foreground")}>
+                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between h-9 text-[11px]", !field.value && "text-muted-foreground")}>
                                         {field.value || "Select company"}
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
@@ -391,7 +391,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                                 form.setValue("companyName", c);
                                                 setCompanyPopoverOpen(false);
                                             }}
-                                            className="w-full justify-start text-left h-auto py-2"
+                                            className="w-full justify-start text-left h-auto py-2 text-[11px]"
                                         >
                                             <Check className={cn("mr-2 h-4 w-4", c === field.value ? "opacity-100" : "opacity-0")} />
                                             {c}
@@ -410,14 +410,14 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 name="billNos"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Bill No(s)</FormLabel>
+                        <FormLabel className="text-[11px]">Bill No(s)</FormLabel>
                         <Popover open={isBillNoPopoverOpen} onOpenChange={setBillNoPopoverOpen}>
                             <PopoverTrigger asChild disabled={!watchedCompanyName}>
                                 <FormControl>
-                                    <Button variant="outline" className="w-full justify-between h-9 font-normal">
+                                    <Button variant="outline" className="w-full justify-between h-9 font-normal text-[11px]">
                                         <div className="flex flex-grow flex-wrap gap-1">
                                             {selectedBills.length > 0 ? (
-                                                selectedBills.map(b => <Badge key={b.id} variant="secondary">{b.billNo}</Badge>)
+                                                selectedBills.map(b => <Badge key={b.id} variant="secondary" className="text-[11px]">{b.billNo}</Badge>)
                                             ) : (
                                                 <span className="text-muted-foreground">Select bills...</span>
                                             )}
@@ -441,7 +441,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                                                         : [...field.value, b.billNo];
                                                     field.onChange(newValue);
                                                 }}
-                                                className="w-full justify-start"
+                                                className="w-full justify-start text-[11px]"
                                             >
                                                 <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
                                                 <div className="flex justify-between w-full">
@@ -483,9 +483,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                 name="interestPaid"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Interest Paid</FormLabel>
+                        <FormLabel className="text-[11px]">Interest Paid</FormLabel>
                         <FormControl>
-                            <select {...field} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm">
+                            <select {...field} className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-[11px] ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                                 <option value="No">No</option>
                                 <option value="Yes">Yes</option>
                             </select>
@@ -497,7 +497,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         </div>
 
         <div className="flex justify-end p-1">
-          <Button type="submit" size="lg" className="font-bold" disabled={isSaving}>
+          <Button type="submit" size="lg" className="font-bold text-[11px]" disabled={isSaving}>
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
             Save Bill
           </Button>
@@ -506,3 +506,5 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </Form>
   );
 }
+
+    
