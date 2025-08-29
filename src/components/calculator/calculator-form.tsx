@@ -293,7 +293,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <input id="upload-scan" type="file" accept="image/jpeg, image/png" className="hidden" onChange={handleFileChange} ref={fileInputRef}/>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-2 gap-y-4 p-1">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-2 gap-y-4 p-1">
             {/* Row 1 */}
             <FormField
                 control={form.control}
@@ -312,7 +312,6 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                             </PopoverTrigger>
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                 <Command>
-                                    <CommandInput placeholder="Search party..." />
                                     <CommandEmpty>No party found.</CommandEmpty>
                                     <CommandGroup>
                                         <CommandList>
