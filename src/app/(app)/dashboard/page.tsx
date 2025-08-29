@@ -325,14 +325,14 @@ export default function DashboardPage() {
                         <span className="line-clamp-2 leading-tight">{party.party}</span>
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 text-sm p-2 pt-0 gap-2">
+                <CardContent className="grid grid-cols-2 p-2 pt-0 gap-1">
                   <div className="flex flex-col">
                     <p className="text-muted-foreground text-[11px]">Bills</p>
-                    <p className="font-bold text-sm">{party.billCount}</p>
+                    <p className="font-bold text-[11px]">{party.billCount}</p>
                   </div>
                   <div className="flex flex-col">
                     <p className="text-muted-foreground text-[11px]">Amount (Rs.)</p>
-                    <p className="font-bold text-sm">₹{party.totalAmount.toLocaleString('en-IN')}</p>
+                    <p className="font-bold text-[11px]">₹{party.totalAmount.toLocaleString('en-IN')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -366,5 +366,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
