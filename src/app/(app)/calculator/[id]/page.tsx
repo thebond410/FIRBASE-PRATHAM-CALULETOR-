@@ -6,21 +6,25 @@ import { getBillById } from "@/lib/data";
 import { Bill } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useParams } from 'next/navigation';
 
-export default function EditCalculatorPage({ params }: { params: { id: string } }) {
+export default function EditCalculatorPage() {
+  const params = useParams();
   const [bill, setBill] = useState<Bill | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const id = params.id as string;
+
   useEffect(() => {
     const fetchBill = async () => {
-        const fetchedBill = await getBillById(Number(params.id));
+        const fetchedBill = await getBillById(Number(id));
         setBill(fetchedBill);
         setIsLoading(false);
     }
-    if (params.id) {
+    if (id) {
         fetchBill();
     }
-  }, [params.id]);
+  }, [id]);
 
   if (isLoading) {
     return (
@@ -38,5 +42,3 @@ export default function EditCalculatorPage({ params }: { params: { id: string } 
     </div>
   );
 }
-
-    
