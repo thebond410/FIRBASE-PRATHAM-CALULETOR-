@@ -91,7 +91,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [bills, setBills] = useState<CalculatedBill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(isUploading);
+  const [isUploading, setIsUploading] = useState(false);
   const [isAlertOpen, setAlertOpen] = useState(false);
   const [clearPassword, setClearPassword] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
