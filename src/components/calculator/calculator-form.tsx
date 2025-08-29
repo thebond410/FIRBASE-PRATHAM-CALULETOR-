@@ -14,7 +14,7 @@ import { format } from "date-fns";
 import { Camera, Loader2, Save, Upload, Check, ChevronsUpDown, X } from "lucide-react";
 import { scanCheque } from "@/app/actions";
 import { Label } from "@/components/ui/label";
-import { saveBill, getParties, getUnpaidBillsByParty, getCompaniesByParty } from "@/lib/data";
+import { saveBill, getParties, getUnpaidBillsByParty, getCompaniesByParty, findMatchingBill } from "@/lib/data";
 import { useRouter } from "next/navigation";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn, calculateBillDetails, parseDate } from "@/lib/utils";
@@ -262,15 +262,29 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       const result = await scanCheque({ photoDataUri: dataUri });
       if (result.success && result.data) {
         const { partyName, date, amount, chequeNumber, bankName } = result.data;
+        const recAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
+
         setValue("party", partyName, { shouldValidate: true, shouldDirty: true });
         if (date) {
             const parsed = parseDate(date);
             if(parsed) setValue("recDate", format(parsed, 'yyyy-MM-dd'));
         }
-        setValue("recAmount", parseFloat(amount.replace(/[^0-9.]/g, '')) || 0);
+        setValue("recAmount", recAmount);
         setValue("chequeNumber", chequeNumber);
         setValue("bankName", bankName);
-        toast({ title: "Scan Successful", description: "Fields have been populated from the cheque." });
+        toast({ title: "Scan Successful", description: "Fields populated. Checking for matching bill..." });
+
+        // New logic: Find matching bill
+        const matchingBill = await findMatchingBill(partyName, recAmount);
+        if (matchingBill) {
+            setValue("companyName", matchingBill.companyName, { shouldDirty: true, shouldValidate: true });
+            // This will trigger other use-effects to populate bill details
+            setValue("billNos", [matchingBill.billNo], { shouldDirty: true, shouldValidate: true });
+            toast({ title: "Bill Matched!", description: `Automatically selected bill #${matchingBill.billNo} for company ${matchingBill.companyName}.` });
+        } else {
+            toast({ title: "No Unique Bill Match", description: "Please select the company and bill manually.", variant: "default" });
+        }
+
       } else {
         toast({ title: "Scan Failed", description: result.error, variant: "destructive" });
       }
@@ -666,5 +680,3 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </>
   );
 }
-
-    

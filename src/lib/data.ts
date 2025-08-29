@@ -77,6 +77,36 @@ export async function getUnpaidBillsByParty(party: string, companyName: string):
     return data as Bill[];
 }
 
+export async function findMatchingBill(party: string, amount: number): Promise<Bill | null> {
+    const supabase = getSupabaseServerClient();
+    if (!supabase) return null;
+
+    try {
+        const { data, error } = await supabase
+            .from('bills')
+            .select('*')
+            .eq('party', party)
+            .eq('netAmount', amount)
+            .or('interestPaid.is.null,interestPaid.neq.Yes'); // Only look in unpaid bills
+
+        if (error) {
+            console.error(`Error fetching matching bill for party ${party} and amount ${amount}:`, error);
+            return null;
+        }
+
+        // Only return a match if there is exactly one result to avoid ambiguity
+        if (data && data.length === 1) {
+            return data[0] as Bill;
+        }
+
+        return null;
+    } catch (err: any) {
+        console.error("Exception in findMatchingBill:", err);
+        return null;
+    }
+}
+
+
 export async function getBillById(id: number): Promise<Bill | null> {
   const supabase = getSupabaseServerClient();
   if (!supabase) return null;
