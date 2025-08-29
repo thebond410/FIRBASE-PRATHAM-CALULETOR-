@@ -170,7 +170,9 @@ export function SettingsForm() {
 
 
   const loadSettingsFromSupabase = async () => {
-      const supabase = getSupabaseClient();
+      const { supabaseUrl, supabaseKey } = form.getValues();
+      const supabase = getSupabaseClient(supabaseUrl, supabaseKey);
+
       if (!supabase) {
         toast({ title: "Supabase not configured", description: "Please configure Supabase URL and Key first.", variant: "destructive" });
         return;
@@ -231,7 +233,7 @@ export function SettingsForm() {
       setApiStatus("success");
 
       if (saveToSupabase) {
-        const supabase = getSupabaseClient();
+        const supabase = getSupabaseClient(values.supabaseUrl, values.supabaseKey);
          if (supabase) {
             setIsSyncing(true);
             try {
