@@ -1,48 +1,30 @@
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Supabase credentials are now read from environment variables on the server,
-// but we prioritize localStorage on the client for user-configurable settings.
-const serverSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serverSupabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Supabase credentials are now read from environment variables.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!serverSupabaseUrl || !serverSupabaseKey) {
-    console.warn("Supabase URL or Key is not set in environment variables. This is fine for client-side only usage.");
+if (!supabaseUrl || !supabaseKey) {
+    console.warn("Supabase URL or Key is not set in environment variables. The app may not function correctly.");
 }
 
 let supabaseClient: SupabaseClient | null = null;
-let lastUrl: string | undefined = undefined;
-let lastKey: string | undefined = undefined;
-
 let supabaseServerClient: SupabaseClient | null = null;
 
 
 // This function is for CLIENT-SIDE USAGE ONLY.
-export const getSupabaseClient = (url?: string | null, key?: string | null): SupabaseClient | null => {
-    let supabaseUrl = url;
-    let supabaseKey = key;
-
-    // Fallback to localStorage if no credentials passed
-    if (typeof window !== 'undefined') {
-        if (!supabaseUrl) supabaseUrl = localStorage.getItem('supabase_url');
-        if (!supabaseKey) supabaseKey = localStorage.getItem('supabase_key');
-    }
-    
-    // If still no credentials, we can't create a client.
+export const getSupabaseClient = (): SupabaseClient | null => {
+    // If we don't have the credentials from env, we cannot create a client.
     if (!supabaseUrl || !supabaseKey) {
         return null;
     }
 
-    // If the credentials haven't changed, return the existing client.
-    // This prevents re-creating the client on every call with the same credentials.
-    if (supabaseClient && lastUrl === supabaseUrl && lastKey === supabaseKey) {
+    // Return the existing client if it has already been initialized.
+    if (supabaseClient) {
         return supabaseClient;
     }
 
-    // Store the last used credentials
-    lastUrl = supabaseUrl;
-    lastKey = supabaseKey;
-    
     // Create a new client
     supabaseClient = createClient(supabaseUrl, supabaseKey);
     return supabaseClient;
@@ -50,7 +32,7 @@ export const getSupabaseClient = (url?: string | null, key?: string | null): Sup
 
 // This function is for SERVER-SIDE USAGE ONLY.
 export const getSupabaseServerClient = (): SupabaseClient | null => {
-     if (!serverSupabaseUrl || !serverSupabaseKey) {
+     if (!supabaseUrl || !supabaseKey) {
         return null;
     }
     
@@ -58,10 +40,8 @@ export const getSupabaseServerClient = (): SupabaseClient | null => {
         return supabaseServerClient;
     }
 
-    supabaseServerClient = createClient(serverSupabaseUrl, serverSupabaseKey, {
+    supabaseServerClient = createClient(supabaseUrl, supabaseKey, {
         auth: { persistSession: false }
     });
     return supabaseServerClient;
 }
-
-    

@@ -103,8 +103,8 @@ export function SettingsForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       apiKey: "",
-      supabaseUrl: "",
-      supabaseKey: "",
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
       noRecDateTemplate: defaultTemplates.noRecDate,
       pendingInterestTemplate: defaultTemplates.pendingInterest,
       paymentThanksTemplate: defaultTemplates.paymentThanks,
@@ -127,11 +127,9 @@ export function SettingsForm() {
         setApiStatus("unconfigured");
       }
       
-      const storedSupabaseUrl = localStorage.getItem("supabase_url");
-      if (storedSupabaseUrl) form.setValue("supabaseUrl", storedSupabaseUrl);
+      form.setValue("supabaseUrl", process.env.NEXT_PUBLIC_SUPABASE_URL || "");
+      form.setValue("supabaseKey", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "");
       
-      const storedSupabaseKey = localStorage.getItem("supabase_key");
-      if (storedSupabaseKey) form.setValue("supabaseKey", storedSupabaseKey);
 
       const storedTemplates = localStorage.getItem("whatsappTemplates");
       if (storedTemplates) {
@@ -170,11 +168,10 @@ export function SettingsForm() {
 
 
   const loadSettingsFromSupabase = async () => {
-      const { supabaseUrl, supabaseKey } = form.getValues();
-      const supabase = getSupabaseClient(supabaseUrl, supabaseKey);
+      const supabase = getSupabaseClient();
 
       if (!supabase) {
-        toast({ title: "Supabase not configured", description: "Please configure Supabase URL and Key first.", variant: "destructive" });
+        toast({ title: "Supabase not configured", description: "Supabase URL and Key are not available in the environment.", variant: "destructive" });
         return;
       }
       setIsSyncing(true);
@@ -200,7 +197,7 @@ export function SettingsForm() {
             toast({ title: "Settings Loaded", description: "Successfully loaded settings from Supabase." });
         }
       } catch (error: any) {
-        console.error("Error loading settings from Supabase:", error.message);
+        console.error("Error loading settings from Supabase:", error);
         toast({ title: "Load Failed", description: error.message, variant: "destructive" });
       } finally {
         setIsSyncing(false);
@@ -212,8 +209,6 @@ export function SettingsForm() {
     try {
       // Always save to localStorage first
       localStorage.setItem("gemini_api_key", values.apiKey);
-      if(values.supabaseUrl) localStorage.setItem("supabase_url", values.supabaseUrl);
-      if(values.supabaseKey) localStorage.setItem("supabase_key", values.supabaseKey);
       
       const templates = {
           noRecDate: values.noRecDateTemplate,
@@ -233,7 +228,7 @@ export function SettingsForm() {
       setApiStatus("success");
 
       if (saveToSupabase) {
-        const supabase = getSupabaseClient(values.supabaseUrl, values.supabaseKey);
+        const supabase = getSupabaseClient();
          if (supabase) {
             setIsSyncing(true);
             try {
@@ -256,13 +251,13 @@ export function SettingsForm() {
                 toast({ title: "Settings Saved", description: "Your settings have been saved locally and to Supabase." });
 
             } catch (error: any) {
-                console.error("Error saving settings to Supabase:", error.message);
+                console.error("Error saving settings to Supabase:", error);
                 toast({ title: "Supabase Save Failed", description: error.message, variant: "destructive" });
             } finally {
                 setIsSyncing(false);
             }
         } else {
-             toast({ title: "Settings Saved Locally", description: "Your settings have been saved locally. Configure Supabase to save them to the cloud." });
+             toast({ title: "Settings Saved Locally", description: "Your settings have been saved locally. Supabase is not configured to save to the cloud." });
         }
       } else if (saveToSupabase === false) { // This condition is met on loadFromSupabase
         // Do not toast here, it's handled in the calling function.
@@ -529,7 +524,7 @@ export function SettingsForm() {
                     <Database className="h-6 w-6 text-primary"/>
                     <div>
                         <h2 className="text-lg font-bold">Supabase Configuration</h2>
-                        <p className="text-sm text-muted-foreground">Enter your Supabase URL and Key to save data. Settings can be synced with the cloud.</p>
+                        <p className="text-sm text-muted-foreground">The application is connected to a fixed Supabase project. These keys are not editable.</p>
                     </div>
                 </div>
             </div>
@@ -540,7 +535,7 @@ export function SettingsForm() {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel className="font-bold text-sm">Supabase URL</FormLabel>
-                            <FormControl><Input placeholder="https://<project-ref>.supabase.co" {...field} value={field.value ?? ''} /></FormControl>
+                            <FormControl><Input placeholder="Supabase URL" {...field} value={field.value ?? ''} readOnly className="bg-muted" /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )}
@@ -555,10 +550,11 @@ export function SettingsForm() {
                             <FormControl>
                                 <Input
                                     type={showSupabaseKey ? "text" : "password"}
-                                    placeholder="Enter your Supabase anon key"
+                                    placeholder="Supabase anon key"
                                     {...field}
                                     value={field.value ?? ''}
-                                    className="pr-10"
+                                    readOnly
+                                    className="pr-10 bg-muted"
                                 />
                             </FormControl>
                              <button
@@ -657,5 +653,3 @@ export function SettingsForm() {
     </Form>
   );
 }
-
-    
