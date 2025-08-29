@@ -161,21 +161,26 @@ export default function DashboardPage() {
         billDate: '01/04/2024',
         billNo: '101',
         party: 'Sample Party Name',
-        netAmount: 15000.00,
-        creditDays: 30,
-        recDate: '15/04/2024',
-        interestPaid: 'No',
-        mobile: '9876543210',
-        companyName: 'Sample Company',
-        chequeNumber: '123456',
-        bankName: 'Sample Bank',
-        recAmount: 15000.00,
         pes: 'Sample PES',
         meter: '123 Mtr',
-        rate: 10.50
+        rate: 10.50,
+        netAmount: 15000.00,
+        totalDays: 0, // Calculated field, so can be 0
+        creditDays: 30,
+        interestDays: 0, // Calculated field
+        interestAmount: 0, // Calculated field
+        interestPaid: 'No',
+        recDate: '15/04/2024',
+        recAmount: 15000.00,
+        chequeNumber: '123456',
+        bankName: 'Sample Bank',
+        companyName: 'Sample Company',
+        mobile: '9876543210'
     };
     
-    const dataToExport = [Object.values(sampleEntry)];
+    // Ensure the order of values matches the headers
+    const sampleEntryValues = headers.map(header => sampleEntry[header as keyof typeof sampleEntry] ?? '');
+    const dataToExport = [sampleEntryValues];
     
     const ws = XLSX.utils.aoa_to_sheet([headers, ...dataToExport]);
     const wb = XLSX.utils.book_new();
