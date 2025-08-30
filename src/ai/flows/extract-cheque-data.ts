@@ -44,7 +44,7 @@ const prompt = ai.definePrompt({
 - chequeNumber: The cheque number.
 - bankName: The name of the bank.
 
-If a field is not found, return an empty string.
+Analyze the provided image. If the image is not a cheque, return empty strings for all fields.
 
 {{media url=photoDataUri}}`,
   model: 'googleai/gemini-1.5-flash-latest'
