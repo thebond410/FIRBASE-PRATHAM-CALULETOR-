@@ -60,6 +60,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   const { toast } = useToast();
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [parties, setParties] = useState<string[]>([]);
@@ -266,7 +267,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     }
   }, [watchedBillDate, watchedRecDate, watchedCreditDays, watchedNetAmount, watchedBillNos, bill, watchedInterestPaid, watchedRecAmount, watchedParty, watchedCompanyName]);
 
-  const handleScanClick = () => {
+  const triggerScan = () => {
     const apiKey = localStorage.getItem('gemini_api_key');
     if (!apiKey) {
         toast({
@@ -276,6 +277,15 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         });
         return;
     }
+  }
+
+  const handleCameraScanClick = () => {
+    triggerScan();
+    cameraInputRef.current?.click();
+  }
+
+  const handleFileUploadClick = () => {
+    triggerScan();
     fileInputRef.current?.click();
   }
 
@@ -320,8 +330,8 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         toast({ title: "Scan Failed", description: result.error, variant: "destructive" });
       }
       setIsScanning(false);
-       if(fileInputRef.current) {
-        fileInputRef.current.value = "";
+       if(event.target) {
+        event.target.value = "";
       }
     };
     reader.onerror = () => {
@@ -491,15 +501,27 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1">
         <div className="flex justify-end gap-2 p-1">
-            <Button type="button" onClick={handleScanClick} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
+            <Button type="button" onClick={handleCameraScanClick} className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90">
+                {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
+                Camera Scan
+            </Button>
+            <Button type="button" onClick={handleFileUploadClick} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
                 {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                Upload / Scan
+                Upload File
             </Button>
             <input 
               id="camera-scan" 
               type="file" 
               accept="image/*" 
               capture="environment" 
+              className="hidden" 
+              onChange={handleFileChange}
+              ref={cameraInputRef}
+            />
+             <input 
+              id="file-upload" 
+              type="file" 
+              accept="image/*" 
               className="hidden" 
               onChange={handleFileChange}
               ref={fileInputRef}
