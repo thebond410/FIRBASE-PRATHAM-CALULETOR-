@@ -1,11 +1,11 @@
 {
   "name": "PRATHAM CALCULATOR",
-  "short_name": "PrathamCalc",
+  "short_name": "Calculator",
   "description": "A comprehensive app for calculating interest on outstanding bills.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F5F5F5",
-  "theme_color": "#4B0082",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
   "icons": [
     {
       "src": "/icon-192x192.png",
