@@ -165,55 +165,50 @@ export function SettingsForm() {
   }
 
   useEffect(() => {
-    loadSettingsFromLocalStorage();
+    // Automatically load settings from Supabase on component mount
+    const autoLoadSettings = async () => {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            // If Supabase isn't configured, fall back to local storage
+            loadSettingsFromLocalStorage();
+            return;
+        }
+
+        setIsSyncing(true);
+        try {
+            const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
+
+            if (error || !data) {
+                // If there's an error or no data, fall back to local storage
+                if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
+                    console.warn("Could not fetch Supabase settings, falling back to local storage.", error);
+                }
+                loadSettingsFromLocalStorage();
+            } else {
+                // If data is found, populate the form
+                form.setValue("apiKey", data.api_key || "");
+                if (data.api_key) setApiStatus("success"); else setApiStatus("unconfigured");
+
+                form.setValue("noRecDateTemplate", data.no_rec_date_template || defaultTemplates.noRecDate);
+                form.setValue("pendingInterestTemplate", data.pending_interest_template || defaultTemplates.pendingInterest);
+                form.setValue("paymentThanksTemplate", data.payment_thanks_template || defaultTemplates.paymentThanks);
+                form.setValue("billListFontSize", data.bill_list_font_size || 12);
+                form.setValue("visibleColumns", data.visible_columns || defaultVisibleColumns);
+                form.setValue("frozenColumns", data.frozen_columns || []);
+                form.setValue("askForWhatsappOnSave", data.ask_for_whatsapp_on_save ?? true);
+                 // Also update local storage to keep it in sync
+                onSubmit(form.getValues(), false); 
+            }
+        } catch (e) {
+            console.error("Failed to auto-load settings:", e);
+            loadSettingsFromLocalStorage();
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+    
+    autoLoadSettings();
   }, [defaultVisibleColumns, form]);
-
-
-  const loadSettingsFromSupabase = async () => {
-      const supabase = getSupabaseClient();
-
-      if (!supabase) {
-        toast({ title: "Supabase not configured", description: "Supabase URL and Key are not available in the environment.", variant: "destructive" });
-        return;
-      }
-      setIsSyncing(true);
-      try {
-        const { data, error } = await supabase
-            .from('settings')
-            .select('*')
-            .eq('id', 1)
-            .single();
-
-        if (error) {
-          // If the settings table doesn't exist or is empty, it might throw an error.
-          // We can provide a more helpful message in this case.
-          if (error.code === 'PGRST116') {
-            toast({ title: "No Settings Found", description: "No settings found in the database. Please save your settings first.", variant: "destructive" });
-          } else {
-            throw error;
-          }
-        }
-
-        if (data) {
-            form.setValue("apiKey", data.api_key || "");
-            form.setValue("noRecDateTemplate", data.no_rec_date_template || defaultTemplates.noRecDate);
-            form.setValue("pendingInterestTemplate", data.pending_interest_template || defaultTemplates.pendingInterest);
-            form.setValue("paymentThanksTemplate", data.payment_thanks_template || defaultTemplates.paymentThanks);
-            form.setValue("billListFontSize", data.bill_list_font_size || 12);
-            form.setValue("visibleColumns", data.visible_columns || defaultVisibleColumns);
-            form.setValue("frozenColumns", data.frozen_columns || []);
-            form.setValue("askForWhatsappOnSave", data.ask_for_whatsapp_on_save ?? true);
-            onSubmit(form.getValues(), false); // Save to local storage after fetching
-            toast({ title: "Settings Loaded", description: "Successfully loaded settings from Supabase." });
-        }
-      } catch (error: any) {
-        console.error("Error loading settings from Supabase:", error.message);
-        toast({ title: "Load Failed", description: error.message, variant: "destructive" });
-      } finally {
-        setIsSyncing(false);
-      }
-  };
-
 
   async function onSubmit(values: FormValues, saveToSupabase = true) {
     try {
@@ -553,7 +548,7 @@ export function SettingsForm() {
                                     value={field.value ?? ''}
                                     readOnly
                                     className="pr-10 bg-muted text-xs"
-                                />
+                                 />
                             </FormControl>
                              <button
                                 type="button"
@@ -567,11 +562,7 @@ export function SettingsForm() {
                         </FormItem>
                     )}
                 />
-                 <Button type="button" onClick={loadSettingsFromSupabase} disabled={isSyncing} className="text-xs">
-                    <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                    {isSyncing ? 'Loading...' : 'Load from Supabase'}
-                </Button>
-            </div>
+             </div>
              <div className="flex-col items-start gap-2 pt-2">
                 <Label className="text-xs">SQL Table Scripts</Label>
                 <div className="flex gap-2">
@@ -649,3 +640,5 @@ export function SettingsForm() {
     </Form>
   );
 }
+
+    
