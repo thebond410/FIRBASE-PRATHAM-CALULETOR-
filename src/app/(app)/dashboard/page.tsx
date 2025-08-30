@@ -135,11 +135,11 @@ export default function DashboardPage() {
 
   }, [fetchBills]);
 
-  const summaryCards = [
+  const summaryCards = useMemo(() => [
     { title: "Total Entries", value: summary.totalEntries.toLocaleString(), icon: BarChart, gradient: "from-blue-500 to-indigo-500" },
     { title: "Total Net Amount", value: `₹${summary.totalNetAmount.toLocaleString('en-IN')}`, icon: Banknote, gradient: "from-green-500 to-lime-500" },
     { title: "Overdue Amount", value: `₹${summary.overdueAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`, icon: AlertTriangle, gradient: "from-red-500 to-orange-500" },
-  ];
+  ], [summary]);
   
   const handlePartyClick = (partyName: string) => {
     router.push(`/bill-list?party=${encodeURIComponent(partyName)}`);
@@ -232,37 +232,32 @@ export default function DashboardPage() {
     
     setIsUploading(true);
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        if (!arrayBuffer) {
-            toast({ title: "File Error", description: "Could not read the file content.", variant: "destructive"});
-            setIsUploading(false);
-            return;
-        }
-        try {
-            const result = await importBills(arrayBuffer, file.type);
-            if (result.success) {
-                let description = `${result.count} bill(s) have been imported.`;
-                if (result.skipped && result.skipped > 0) {
-                    description += ` ${result.skipped} duplicate bill(s) were skipped.`;
-                }
-                toast({ title: "Import Successful", description });
-                // Data will be updated via real-time sync
-            } else {
-                toast({ title: "Import Failed", description: result.error, variant: "destructive"});
+    const arrayBuffer = await file.arrayBuffer();
+
+    try {
+        const result = await importBills(arrayBuffer, file.type);
+        if (result.success) {
+            let description = `${result.count} bill(s) have been imported.`;
+            if (result.skipped && result.skipped > 0) {
+                description += ` ${result.skipped} duplicate bill(s) were skipped.`;
             }
-        } catch (error: any) {
-             toast({ title: "Import Error", description: error.message, variant: "destructive"});
-        } finally {
-            setIsUploading(false);
+            toast({ title: "Import Successful", description });
+            // Data will be updated via real-time sync
+        } else {
+            toast({ title: "Import Failed", description: result.error, variant: "destructive"});
         }
-    };
-    reader.readAsArrayBuffer(file);
-    
-    // Reset file input
-    if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+    } catch (error: any) {
+        if (error instanceof Error) {
+            toast({ title: "Import Error", description: error.message, variant: "destructive"});
+        } else {
+            toast({ title: "An Unknown Error Occurred", description: "Please check the console for more details.", variant: "destructive"});
+        }
+    } finally {
+        setIsUploading(false);
+         // Reset file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
     }
   };
 

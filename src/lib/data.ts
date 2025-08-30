@@ -13,7 +13,11 @@ export async function getCalculatedBills(): Promise<CalculatedBill[]> {
       return [];
   }
   
-  const { data, error } = await supabase.from('bills').select('*').order('billDate', { ascending: false });
+  // Select only the columns needed for calculation and display to reduce data transfer
+  const { data, error } = await supabase
+    .from('bills')
+    .select('id, billDate, billNo, party, netAmount, creditDays, recDate, interestPaid, mobile, companyName, chequeNumber, bankName, recAmount, pes, meter, rate')
+    .order('billDate', { ascending: false });
 
   if (error) {
       console.error("Error fetching bills from Supabase:", error);

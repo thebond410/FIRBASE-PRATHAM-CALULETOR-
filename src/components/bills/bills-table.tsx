@@ -48,9 +48,9 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
   const [billToDelete, setBillToDelete] = React.useState<CalculatedBill | null>(null);
   const [selectedBillId, setSelectedBillId] = React.useState<number | null>(null);
   const [whatsappTemplates, setWhatsappTemplates] = React.useState({
-    noRecDate: `Outstanding Bill\n\nDear [Party],\nMy Bill No. [Bill No], Dt: [Bill Date],\nRs. [Netamount], Total Days: [Total Days].\nInterest days.[interest days], \nInt. Rs.[Interest amt].\n\nFrom: [Company]\n\nDear Sir, this bill is overdue. Please make payment.`,
-    pendingInterest: `!!	Jay Matadi  !!\nPending Interest…\n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount], Rec Dt: [Rec Date]\nTotal Days: [Total Days], Interest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nPay this bill’s pending interest and close full payment.\n\nFrom: [Company].`,
-    paymentThanks: `!!	Jay Matadi  !!\n\nThanks For Payment \n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount],\nRec Dt: [Rec Date]\nTotal Days: [Total Days], \nInterest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nWe Proud Work with You...`
+    noRecDate: ``,
+    pendingInterest: ``,
+    paymentThanks: ``
   });
   const [fontSize, setFontSize] = React.useState(11);
   const [columnConfig, setColumnConfig] = React.useState<ColumnConfig>({
@@ -60,36 +60,32 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
   const tableContainerRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
+    // This effect runs only once on mount to load settings from localStorage.
     try {
         const storedId = localStorage.getItem('selectedBillId');
-        if (storedId) {
-            setSelectedBillId(JSON.parse(storedId));
-        }
+        if (storedId) setSelectedBillId(JSON.parse(storedId));
+
         const storedTemplates = localStorage.getItem('whatsappTemplates');
         if (storedTemplates) {
             const parsedTemplates = JSON.parse(storedTemplates);
-            // Ensure all templates are present, falling back to defaults if any are missing
             setWhatsappTemplates({
-                noRecDate: parsedTemplates.noRecDate || `Outstanding Bill\n\nDear [Party],\nMy Bill No. [Bill No], Dt: [Bill Date],\nRs. [Netamount], Total Days: [Total Days].\nInterest days.[interest days], \nInt. Rs.[Interest amt].\n\nFrom: [Company]\n\nDear Sir, this bill is overdue. Please make payment.`,
-                pendingInterest: parsedTemplates.pendingInterest || `!!	Jay Matadi  !!\nPending Interest…\n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount], Rec Dt: [Rec Date]\nTotal Days: [Total Days], Interest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nPay this bill’s pending interest and close full payment.\n\nFrom: [Company].`,
-                paymentThanks: parsedTemplates.paymentThanks || `!!	Jay Matadi  !!\n\nThanks For Payment \n\nDear [Party],\nBill No. [Bill No], Dt: [Bill Date],\nRec Rs. [Recamount],\nRec Dt: [Rec Date]\nTotal Days: [Total Days], \nInterest Days: [Interest Days],\nInterest Rs. [Interest Amount]\n\nWe Proud Work with You...`
+                noRecDate: parsedTemplates.noRecDate || ``,
+                pendingInterest: parsedTemplates.pendingInterest || ``,
+                paymentThanks: parsedTemplates.paymentThanks || ``
             });
         }
+        
         const storedFontSize = localStorage.getItem("billListFontSize");
-        if (storedFontSize) {
-          const newSize = parseInt(storedFontSize, 10);
-          setFontSize(newSize);
-        }
+        if (storedFontSize) setFontSize(parseInt(storedFontSize, 10));
+
         const storedColumnConfig = localStorage.getItem("billListColumnConfig");
-        if (storedColumnConfig) {
-            setColumnConfig(JSON.parse(storedColumnConfig));
-        }
+        if (storedColumnConfig) setColumnConfig(JSON.parse(storedColumnConfig));
+        
         const storedSortConfig = localStorage.getItem("billListSortConfig");
-        if (storedSortConfig) {
-            setSortConfig(JSON.parse(storedSortConfig));
-        }
+        if (storedSortConfig) setSortConfig(JSON.parse(storedSortConfig));
+
     } catch (error) {
-        console.error("Could not access localStorage", error);
+        console.error("Could not access localStorage on mount", error);
     }
   }, []);
 
@@ -129,6 +125,11 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
     }
 
     const template = whatsappTemplates[templateKey];
+    if (!template) {
+        toast({ title: "Template not found", description: `WhatsApp template for '${templateKey}' is not configured in settings.`, variant: 'destructive'});
+        return;
+    }
+
 
     const message = template
       .replace(/\[Party\]/g, bill.party)
@@ -202,7 +203,7 @@ export function BillsTable({ data }: { data: CalculatedBill[] }) {
       else left += 100;
     });
     return styles;
-  }, [columnConfig, visibleColumns]);
+  }, [columnConfig.frozenColumns, visibleColumns]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '';

@@ -266,10 +266,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     }
   }, [watchedBillDate, watchedRecDate, watchedCreditDays, watchedNetAmount, watchedBillNos, bill, watchedInterestPaid, watchedRecAmount, watchedParty, watchedCompanyName]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const handleScanClick = () => {
     const apiKey = localStorage.getItem('gemini_api_key');
     if (!apiKey) {
         toast({
@@ -279,6 +276,12 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         });
         return;
     }
+    fileInputRef.current?.click();
+  }
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
     setIsScanning(true);
     const reader = new FileReader();
@@ -488,7 +491,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1">
         <div className="flex justify-end gap-2 p-1">
-            <Button type="button" onClick={() => fileInputRef.current?.click()} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
+            <Button type="button" onClick={handleScanClick} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
                 {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 Upload Scan
             </Button>
