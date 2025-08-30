@@ -493,14 +493,17 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         <div className="flex justify-end gap-2 p-1">
             <Button type="button" onClick={handleScanClick} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
                 {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                Upload Scan
+                Upload / Scan
             </Button>
-            <label htmlFor="camera-scan" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 text-primary-foreground h-10 px-4 py-2 cursor-pointer bg-gradient-to-r from-accent to-primary hover:opacity-90">
-                 <Camera className="mr-2 h-4 w-4" />
-                Camera Scan
-            </label>
-            <input id="camera-scan" type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange}/>
-            <input id="upload-scan" type="file" accept="image/jpeg, image/png" className="hidden" onChange={handleFileChange} ref={fileInputRef}/>
+            <input 
+              id="camera-scan" 
+              type="file" 
+              accept="image/*" 
+              capture="environment" 
+              className="hidden" 
+              onChange={handleFileChange}
+              ref={fileInputRef}
+            />
         </div>
 
         <div className="grid grid-cols-3 gap-x-2 gap-y-4 p-1">
@@ -727,3 +730,5 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </>
   );
 }
+
+    
