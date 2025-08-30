@@ -49,7 +49,7 @@ Do NOT extract the company name who issued the cheque (the name after "Pay" or "
 Return the data as a JSON object. If a field is not found or is unclear, return an empty string for that field.
 
 {{media url=photoDataUri}}`,
-  model: 'googleai/gemini-2.5-flash'
+  model: 'googleai/gemini-1.5-flash-latest'
 });
 
 const extractChequeDataFlow = ai.defineFlow(
