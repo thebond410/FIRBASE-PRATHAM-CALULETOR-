@@ -19,7 +19,10 @@ export async function scanCheque(input: ExtractChequeDataInput) {
         if (error.message) {
             if (error.message.includes('API key not valid')) {
                 errorMessage = "Scan failed: The provided API Key is not valid. Please check your settings.";
-            } else if (error.message.includes('permission')) {
+            } else if (error.message.includes('API key expired')) {
+                errorMessage = "Scan failed: The API Key has expired. Please renew the key in Settings.";
+            }
+            else if (error.message.includes('permission')) {
                  errorMessage = "Scan failed: The provided API Key is not valid or does not have permissions for this model. Please check your settings.";
             }
             else {
