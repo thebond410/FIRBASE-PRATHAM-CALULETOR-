@@ -342,6 +342,15 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         setIsScanning(false);
     }
   };
+  
+  const getFormattedPhoneNumber = (mobile: string) => {
+    if (!mobile) return "";
+    const cleaned = mobile.replace(/\D/g, ''); // Remove non-digit characters
+    if (cleaned.startsWith('91')) {
+      return `+${cleaned}`;
+    }
+    return `+91${cleaned}`;
+  };
 
   const handleSendWhatsApp = () => {
     if (!billForWhatsApp) return;
@@ -372,7 +381,15 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       .replace(/\[Interest Days\]/g, billForWhatsApp.interestDays.toString())
       .replace(/\[Interest Amount\]/g, billForWhatsApp.interestAmount.toFixed(2));
 
-    const whatsappUrl = `https://wa.me/${billForWhatsApp.mobile}?text=${encodeURIComponent(message)}`;
+    const phoneNumber = getFormattedPhoneNumber(billForWhatsApp.mobile);
+    if (!phoneNumber) {
+        toast({ title: "No Mobile Number", description: `There is no mobile number associated with ${billForWhatsApp.party}.`, variant: 'destructive'});
+        setWhatsAppAlertOpen(false);
+        router.push('/bill-list');
+        return;
+    }
+
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     setWhatsAppAlertOpen(false);
     router.push('/bill-list');
