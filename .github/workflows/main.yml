@@ -26,7 +26,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: "https://xwobggszxxdnlzzhgkff.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3b2JnZ3N6eHhkbmx6emhna2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzOTUxNjIsImV4cCI6MjA3MTk3MTE2Mn0.cAI3Tp5ihJY7jPiCGCNN9GAQAHUYcvoaLCOIYTk77_o"
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
 
       - name: Deploy to Netlify
