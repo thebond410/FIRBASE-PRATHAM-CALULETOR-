@@ -267,7 +267,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     }
   }, [watchedBillDate, watchedRecDate, watchedCreditDays, watchedNetAmount, watchedBillNos, bill, watchedInterestPaid, watchedRecAmount, watchedParty, watchedCompanyName]);
 
-  const triggerScan = () => {
+  const triggerScan = useCallback(() => {
     const apiKey = localStorage.getItem('gemini_api_key');
     if (!apiKey) {
         toast({
@@ -275,18 +275,21 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             description: "Please configure your Gemini API key in Settings.",
             variant: "destructive",
         });
-        return;
+        return false;
+    }
+    return true;
+  }, [toast]);
+
+  const handleCameraScanClick = () => {
+    if (triggerScan()) {
+        cameraInputRef.current?.click();
     }
   }
 
-  const handleCameraScanClick = () => {
-    triggerScan();
-    cameraInputRef.current?.click();
-  }
-
   const handleFileUploadClick = () => {
-    triggerScan();
-    fileInputRef.current?.click();
+    if (triggerScan()) {
+        fileInputRef.current?.click();
+    }
   }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -512,7 +515,6 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             <input 
               id="camera-scan" 
               type="file" 
-              accept="image/*" 
               capture="environment" 
               className="hidden" 
               onChange={handleFileChange}
@@ -753,4 +755,3 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   );
 }
 
-    
