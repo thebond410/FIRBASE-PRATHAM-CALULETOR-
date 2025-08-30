@@ -303,10 +303,13 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       const dataUri = reader.result as string;
       const result = await scanCheque({ photoDataUri: dataUri });
       if (result.success && result.data) {
-        const { partyName, date, amount, chequeNumber, bankName } = result.data;
-        const recAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
-
+        const { payeeName, partyName, date, amount, chequeNumber, bankName } = result.data;
+        
+        // Set the values from the scan first.
         setValue("party", partyName, { shouldValidate: true, shouldDirty: true });
+        setValue("companyName", payeeName, { shouldValidate: true, shouldDirty: true });
+
+        const recAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
         if (date) {
             const parsed = parseDate(date);
             if(parsed) setValue("recDate", format(parsed, 'yyyy-MM-dd'));
@@ -319,7 +322,10 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         // New logic: Find matching bill
         const matchingBill = await findMatchingBill(partyName, recAmount);
         if (matchingBill) {
-            setValue("companyName", matchingBill.companyName, { shouldDirty: true, shouldValidate: true });
+            // Only update company name if it's different from the scanned payee name
+            if (matchingBill.companyName !== payeeName) {
+              setValue("companyName", matchingBill.companyName, { shouldDirty: true, shouldValidate: true });
+            }
             // This will trigger other use-effects to populate bill details
             setTimeout(() => {
                 setValue("billNos", [matchingBill.billNo], { shouldDirty: true, shouldValidate: true });
@@ -346,7 +352,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   const getFormattedPhoneNumber = (mobile: string) => {
     if (!mobile) return "";
     const cleaned = mobile.replace(/\D/g, ''); // Remove non-digit characters
-    if (cleaned.startsWith('91')) {
+    if (cleaned.length > 10 && cleaned.startsWith('91')) {
       return `+${cleaned}`;
     }
     return `+91${cleaned}`;
@@ -772,3 +778,4 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   );
 }
 
+    
