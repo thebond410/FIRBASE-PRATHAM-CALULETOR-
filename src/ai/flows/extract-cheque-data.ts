@@ -37,16 +37,14 @@ const prompt = ai.definePrompt({
   name: 'extractChequeDataPrompt',
   input: {schema: ExtractChequeDataInputSchema},
   output: {schema: ExtractChequeDataOutputSchema},
-  prompt: `Analyze the provided cheque image and extract the information. Adhere to the following instructions precisely for each field:
-- partyName: Find the label "For" or "FOR" and extract the full name of the payee written next to it.
-- date: Find the date on the cheque and provide it in DD/MM/YYYY format.
-- amount: Extract only the numerical value of the cheque amount.
-- chequeNumber: Extract the cheque number.
-- bankName: Extract the name of the bank.
+  prompt: `Analyze the provided cheque image and extract the following information:
+- partyName: The name of the payee written after the "For" or "FOR" label.
+- date: The date in DD/MM/YYYY format.
+- amount: The numerical value of the cheque amount.
+- chequeNumber: The cheque number.
+- bankName: The name of the bank.
 
-Do NOT extract the company name who issued the cheque (the name after "Pay" or "PAY").
-
-Return the data as a JSON object. If a field is not found or is unclear, return an empty string for that field.
+If a field is not found, return an empty string.
 
 {{media url=photoDataUri}}`,
   model: 'googleai/gemini-1.5-flash-latest'
