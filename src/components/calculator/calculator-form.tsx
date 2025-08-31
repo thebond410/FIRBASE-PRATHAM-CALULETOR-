@@ -268,16 +268,22 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   }, [watchedBillDate, watchedRecDate, watchedCreditDays, watchedNetAmount, watchedBillNos, bill, watchedInterestPaid, watchedRecAmount, watchedParty, watchedCompanyName]);
 
   const triggerScan = useCallback(() => {
-    const apiKey = localStorage.getItem('gemini_api_key');
-    if (!apiKey) {
-        toast({
-            title: "API Key Not Configured",
-            description: "Please configure your Gemini API key in Settings.",
-            variant: "destructive",
-        });
+    try {
+        const apiKey = localStorage.getItem('gemini_api_key');
+        if (!apiKey) {
+            toast({
+                title: "API Key Not Configured",
+                description: "Please configure your Gemini API key in the Settings page.",
+                variant: "destructive",
+            });
+            return false;
+        }
+        return apiKey;
+    } catch (error) {
+        console.error("Could not read from localStorage", error);
+        toast({ title: "Local Storage Error", description: "Could not read API key from local storage.", variant: "destructive"});
         return false;
     }
-    return true;
   }, [toast]);
 
   const handleCameraScanClick = () => {
@@ -296,12 +302,15 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const apiKey = triggerScan();
+    if (!apiKey) return;
+
     setIsScanning(true);
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
       const dataUri = reader.result as string;
-      const result = await scanCheque({ photoDataUri: dataUri });
+      const result = await scanCheque({ photoDataUri: dataUri, apiKey });
 
       if (result.success && result.data) {
         const { payeeName, partyName, date, amount, chequeNumber, bankName } = result.data;

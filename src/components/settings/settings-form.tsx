@@ -165,52 +165,10 @@ export function SettingsForm() {
   }
 
   useEffect(() => {
-    // Automatically load settings from Supabase on component mount
-    const autoLoadSettings = async () => {
-        const supabase = getSupabaseClient();
-        if (!supabase) {
-            // If Supabase isn't configured, fall back to local storage
-            loadSettingsFromLocalStorage();
-            return;
-        }
-
-        setIsSyncing(true);
-        try {
-            const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
-
-            if (error || !data) {
-                // If there's an error or no data, fall back to local storage
-                if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
-                    console.warn("Could not fetch Supabase settings, falling back to local storage.", error);
-                }
-                loadSettingsFromLocalStorage();
-            } else {
-                // If data is found, populate the form
-                form.setValue("apiKey", data.api_key || "");
-                if (data.api_key) setApiStatus("success"); else setApiStatus("unconfigured");
-
-                form.setValue("noRecDateTemplate", data.no_rec_date_template || defaultTemplates.noRecDate);
-                form.setValue("pendingInterestTemplate", data.pending_interest_template || defaultTemplates.pendingInterest);
-                form.setValue("paymentThanksTemplate", data.payment_thanks_template || defaultTemplates.paymentThanks);
-                form.setValue("billListFontSize", data.bill_list_font_size || 12);
-                form.setValue("visibleColumns", data.visible_columns || defaultVisibleColumns);
-                form.setValue("frozenColumns", data.frozen_columns || []);
-                form.setValue("askForWhatsappOnSave", data.ask_for_whatsapp_on_save ?? true);
-                 // Also update local storage to keep it in sync
-                onSubmit(form.getValues(), false); 
-            }
-        } catch (e) {
-            console.error("Failed to auto-load settings:", e);
-            loadSettingsFromLocalStorage();
-        } finally {
-            setIsSyncing(false);
-        }
-    };
-    
-    autoLoadSettings();
+    loadSettingsFromLocalStorage();
   }, [defaultVisibleColumns, form]);
 
-  async function onSubmit(values: FormValues, saveToSupabase = true) {
+  async function onSubmit(values: FormValues) {
     try {
       // Always save to localStorage first
       localStorage.setItem("gemini_api_key", values.apiKey);
@@ -230,53 +188,16 @@ export function SettingsForm() {
       localStorage.setItem("billListColumnConfig", JSON.stringify(columnConfig));
       localStorage.setItem("askForWhatsappOnSave", JSON.stringify(values.askForWhatsappOnSave));
       
-      setApiStatus("success");
+      setApiStatus(values.apiKey ? "success" : "unconfigured");
 
-      if (saveToSupabase) {
-        const supabase = getSupabaseClient();
-         if (supabase) {
-            setIsSyncing(true);
-            try {
-                const { error } = await supabase
-                    .from('settings')
-                    .upsert({ 
-                        id: 1, // Always upsert the single settings row
-                        api_key: values.apiKey,
-                        no_rec_date_template: values.noRecDateTemplate,
-                        pending_interest_template: values.pendingInterestTemplate,
-                        payment_thanks_template: values.paymentThanksTemplate,
-                        bill_list_font_size: values.billListFontSize,
-                        visible_columns: values.visibleColumns,
-                        frozen_columns: values.frozenColumns,
-                        ask_for_whatsapp_on_save: values.askForWhatsappOnSave,
-                        updated_at: new Date().toISOString()
-                    }, { onConflict: 'id' });
-
-                if (error) throw error;
-                toast({ title: "Settings Saved", description: "Your settings have been saved locally and to Supabase." });
-
-            } catch (error: any) {
-                console.error("Error saving settings to Supabase:", error);
-                toast({ title: "Supabase Save Failed", description: error.message, variant: "destructive" });
-            } finally {
-                setIsSyncing(false);
-            }
-        } else {
-             toast({ title: "Settings Saved Locally", description: "Your settings have been saved locally. Supabase is not configured to save to the cloud." });
-        }
-      } else if (saveToSupabase === false) { // This condition is met on loadFromSupabase
-        // Do not toast here, it's handled in the calling function.
-      }
-       else {
-        toast({ title: "Settings Saved Locally", description: "Settings have been updated locally." });
-      }
+      toast({ title: "Settings Saved", description: "Your settings have been saved locally." });
 
     } catch (error) {
         console.error("Could not access localStorage", error);
         setApiStatus("failed");
         toast({
             title: "Save Failed",
-            description: "Could not save settings to local storage.",
+            description: "Could not save settings to local storage. Please check your browser permissions.",
             variant: "destructive"
         })
     }
@@ -640,5 +561,3 @@ export function SettingsForm() {
     </Form>
   );
 }
-
-    

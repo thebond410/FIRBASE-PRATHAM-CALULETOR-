@@ -17,6 +17,7 @@ const ExtractChequeDataInputSchema = z.object({
     .describe(
       "A photo of a cheque, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
+  apiKey: z.string().describe("The Google AI API key to use for this request."),
 });
 export type ExtractChequeDataInput = z.infer<typeof ExtractChequeDataInputSchema>;
 
@@ -35,11 +36,7 @@ export async function extractChequeData(input: ExtractChequeDataInput): Promise<
   return extractChequeDataFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'extractChequeDataPrompt',
-  input: {schema: ExtractChequeDataInputSchema},
-  output: {schema: ExtractChequeDataOutputSchema},
-  prompt: `Analyze the provided cheque image. If the image is vertical, rotate it to be horizontal before processing. Identify and extract the following data points based on their standard locations on a cheque:
+const CHEQUE_EXTRACTION_PROMPT = `Analyze the provided cheque image. If the image is vertical, rotate it to be horizontal before processing. Identify and extract the following data points based on their standard locations on a cheque:
 
 - payeeName: Find the line that starts with "Pay" and extract the recipient's name. This is the company name. For example, if the line is "Pay Daksha Enterprise", extract "Daksha Enterprise".
 - partyName: Find the line that starts with "For" or "FOR", which is usually below the amount in the box. Extract the name that follows, but do not include the word "For" in the result. For example, from "For TRIYA FASHIONS PRIVATE LIMITED", extract "TRIYA FASHIONS PRIVATE LIMITED".
@@ -48,11 +45,8 @@ const prompt = ai.definePrompt({
 - chequeNumber: Find the MICR code at the bottom of the cheque. The cheque number is the first 6-digit number in this code.
 - bankName: Identify the name of the bank, which is typically located at the top of the cheque.
 
-If any of these data points are unclear or cannot be found, populate the 'error' field with a descriptive message. If the image is not a cheque, return empty strings for all fields and an error message.
+If any of these data points are unclear or cannot be found, populate the 'error' field with a descriptive message. If the image is not a cheque, return empty strings for all fields and an error message.`;
 
-{{media url=photoDataUri}}`,
-  model: 'googleai/gemini-1.5-flash-latest'
-});
 
 const extractChequeDataFlow = ai.defineFlow(
   {
@@ -61,7 +55,15 @@ const extractChequeDataFlow = ai.defineFlow(
     outputSchema: ExtractChequeDataOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const { output } = await ai.generate({
+        model: 'googleai/gemini-1.5-flash-latest',
+        prompt: {
+            text: CHEQUE_EXTRACTION_PROMPT,
+            media: [{ url: input.photoDataUri }],
+        },
+        output: { schema: ExtractChequeDataOutputSchema },
+        apiKey: input.apiKey, // Pass the API key dynamically
+    });
     return output!;
   }
 );
