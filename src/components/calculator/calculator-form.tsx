@@ -322,13 +322,13 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         // New logic: Find matching bill
         const matchingBill = await findMatchingBill(partyName, recAmount);
         if (matchingBill) {
-            // Only update company name if it's different from the scanned payee name
-            if (matchingBill.companyName !== payeeName) {
-              setValue("companyName", matchingBill.companyName, { shouldDirty: true, shouldValidate: true });
-            }
             // This will trigger other use-effects to populate bill details
             setTimeout(() => {
                 setValue("billNos", [matchingBill.billNo], { shouldDirty: true, shouldValidate: true });
+                // If the company name from the bill is different, update it.
+                 if (matchingBill.companyName && matchingBill.companyName !== payeeName) {
+                    setValue("companyName", matchingBill.companyName, { shouldDirty: true, shouldValidate: true });
+                }
             }, 100);
             toast({ title: "Bill Matched!", description: `Automatically selected bill #${matchingBill.billNo} for company ${matchingBill.companyName}.` });
         } else {
@@ -352,7 +352,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   const getFormattedPhoneNumber = (mobile: string) => {
     if (!mobile) return "";
     const cleaned = mobile.replace(/\D/g, ''); // Remove non-digit characters
-    if (cleaned.length > 10 && cleaned.startsWith('91')) {
+    if (cleaned.startsWith('91')) {
       return `+${cleaned}`;
     }
     return `+91${cleaned}`;
