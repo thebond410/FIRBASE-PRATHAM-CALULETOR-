@@ -302,13 +302,12 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     reader.onload = async () => {
       const dataUri = reader.result as string;
       const result = await scanCheque({ photoDataUri: dataUri });
+
       if (result.success && result.data) {
         const { payeeName, partyName, date, amount, chequeNumber, bankName } = result.data;
-        
-        setValue("party", partyName, { shouldValidate: true, shouldDirty: true });
-        setValue("companyName", payeeName, { shouldValidate: true, shouldDirty: true });
-        
         const recAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
+
+        // Set common fields first
         if (date) {
             const parsed = parseDate(date);
             if(parsed) setValue("recDate", format(parsed, 'yyyy-MM-dd'));
@@ -316,20 +315,29 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         setValue("recAmount", recAmount);
         setValue("chequeNumber", chequeNumber);
         setValue("bankName", bankName);
-        toast({ title: "Scan Successful", description: "Fields populated. Checking for matching bill..." });
+        setValue("party", partyName, { shouldValidate: true, shouldDirty: true });
+        
+        toast({ title: "Scan Successful", description: "Checking for matching bill..." });
 
-        const matchingBill = await findMatchingBill(partyName, recAmount);
-        if (matchingBill) {
-            setTimeout(() => {
-                setValue("billNos", [matchingBill.billNo], { shouldDirty: true, shouldValidate: true });
-                 if (matchingBill.companyName && matchingBill.companyName !== payeeName) {
-                    setValue("companyName", matchingBill.companyName, { shouldDirty: true, shouldValidate: true });
-                }
-            }, 100);
-            toast({ title: "Bill Matched!", description: `Automatically selected bill #${matchingBill.billNo} for company ${matchingBill.companyName}.` });
-        } else {
-            toast({ title: "No Unique Bill Match", description: "Please select the company and bill manually.", variant: "default" });
-        }
+        // Force a re-render cycle to ensure `watchedParty` is updated before fetching bills
+        setTimeout(async () => {
+            const matchingBill = await findMatchingBill(partyName, recAmount);
+
+            if (matchingBill) {
+                // If a bill is found, prioritize its data for consistency
+                setValue("companyName", matchingBill.companyName, { shouldDirty: true, shouldValidate: true });
+                // Trigger selection of the bill number
+                setTimeout(() => {
+                    setValue("billNos", [matchingBill.billNo], { shouldDirty: true, shouldValidate: true });
+                }, 100); // Small delay to ensure company name is set and bill list is filtered
+                toast({ title: "Bill Matched!", description: `Automatically selected bill #${matchingBill.billNo} for ${matchingBill.companyName}.` });
+            } else {
+                // If no matching bill, use the scanned payeeName as the company name
+                setValue("companyName", payeeName, { shouldDirty: true, shouldValidate: true });
+                toast({ title: "No Unique Bill Match", description: "Company and Party populated. Please select the bill manually.", variant: "default" });
+            }
+        }, 0);
+
 
       } else {
         toast({ title: "Scan Failed", description: result.error, variant: "destructive" });
@@ -348,10 +356,15 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   const getFormattedPhoneNumber = (mobile: string) => {
     if (!mobile) return "";
     const cleaned = mobile.replace(/\D/g, ''); // Remove non-digit characters
-    if (cleaned.startsWith('91')) {
+    // Ensure it's not an empty string after cleaning
+    if (!cleaned) return "";
+    if (cleaned.length > 10 && cleaned.startsWith('91')) {
       return `+${cleaned}`;
     }
-    return `+91${cleaned}`;
+    if (cleaned.length === 10) {
+      return `+91${cleaned}`;
+    }
+    return `+${cleaned}`; // Fallback for numbers that might already include + but were cleaned
   };
 
   const handleSendWhatsApp = () => {
@@ -773,5 +786,3 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </>
   );
 }
-
-    
