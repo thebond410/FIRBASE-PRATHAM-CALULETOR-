@@ -39,7 +39,7 @@ const prompt = ai.definePrompt({
   name: 'extractChequeDataPrompt',
   input: {schema: ExtractChequeDataInputSchema},
   output: {schema: ExtractChequeDataOutputSchema},
-  prompt: `Analyze the provided cheque image, which may be horizontal or vertical. If it's not vertical, rotate it to be vertical before processing. Identify and extract the following data points based on their standard locations on a cheque:
+  prompt: `Analyze the provided cheque image, which may be horizontal or vertical. If it's not horizontal, rotate it to be horizontal before processing. Identify and extract the following data points based on their standard locations on a cheque:
 
 - payeeName: Find the line that starts with "Pay" and extract the recipient's name. This is the company name. For example, if the line is "Pay Daksha Enterprise", extract "Daksha Enterprise".
 - partyName: Find the line that starts with "For" or "FOR", which is usually below the amount in the box. Extract the name that follows, but do not include the word "For" in the result. For example, from "For TRIYA FASHIONS PRIVATE LIMITED", extract "TRIYA FASHIONS PRIVATE LIMITED".

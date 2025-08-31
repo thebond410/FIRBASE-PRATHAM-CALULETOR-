@@ -305,10 +305,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
       if (result.success && result.data) {
         const { payeeName, partyName, date, amount, chequeNumber, bankName } = result.data;
         
-        // Set the values from the scan first.
         setValue("party", partyName, { shouldValidate: true, shouldDirty: true });
         setValue("companyName", payeeName, { shouldValidate: true, shouldDirty: true });
-
+        
         const recAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
         if (date) {
             const parsed = parseDate(date);
@@ -319,13 +318,10 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         setValue("bankName", bankName);
         toast({ title: "Scan Successful", description: "Fields populated. Checking for matching bill..." });
 
-        // New logic: Find matching bill
         const matchingBill = await findMatchingBill(partyName, recAmount);
         if (matchingBill) {
-            // This will trigger other use-effects to populate bill details
             setTimeout(() => {
                 setValue("billNos", [matchingBill.billNo], { shouldDirty: true, shouldValidate: true });
-                // If the company name from the bill is different, update it.
                  if (matchingBill.companyName && matchingBill.companyName !== payeeName) {
                     setValue("companyName", matchingBill.companyName, { shouldDirty: true, shouldValidate: true });
                 }
