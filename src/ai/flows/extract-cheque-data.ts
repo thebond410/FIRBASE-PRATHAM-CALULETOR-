@@ -17,7 +17,6 @@ const ExtractChequeDataInputSchema = z.object({
     .describe(
       "A photo of a cheque, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
-  apiKey: z.string().describe("The Google AI API key to use for this request."),
 });
 export type ExtractChequeDataInput = z.infer<typeof ExtractChequeDataInputSchema>;
 
@@ -62,7 +61,6 @@ const extractChequeDataFlow = ai.defineFlow(
             { media: { url: input.photoDataUri } },
         ],
         output: { schema: ExtractChequeDataOutputSchema },
-        apiKey: input.apiKey, // Pass the API key dynamically
     });
     return output!;
   }

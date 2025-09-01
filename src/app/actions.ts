@@ -9,6 +9,14 @@ import { format } from 'date-fns';
 import * as xlsx from 'xlsx';
 
 export async function scanCheque(input: ExtractChequeDataInput) {
+    // API Key is now handled by the environment variable on the server, so no need to pass it from client
+    if (!process.env.GEMINI_API_KEY) {
+        return { 
+            success: false, 
+            error: "Scan failed: API Key is not configured on the server. Please set it in the environment variables." 
+        };
+    }
+    
     try {
         const result = await extractChequeData(input);
         return { success: true, data: result };
@@ -18,13 +26,15 @@ export async function scanCheque(input: ExtractChequeDataInput) {
         let errorMessage = "Scan failed. Please check the console for details.";
         if (error.message) {
             if (error.message.includes('API key not valid')) {
-                errorMessage = "Scan failed: The provided API Key is not valid. Please check your settings.";
+                errorMessage = "Scan failed: The API Key configured on the server is not valid.";
             } else if (error.message.includes('API key expired')) {
-                errorMessage = "Scan failed: The API Key has expired. Please renew the key in Settings.";
-            } else if (error.message.includes('permission') || error.message.includes('permission to access')) {
-                 errorMessage = "Scan failed: The provided API Key is not valid or does not have permissions for this model. Please check your settings.";
+                errorMessage = "Scan failed: The server API Key has expired.";
+            } else if (error.message.includes('permission') || error.message.includes('access')) {
+                 errorMessage = "Scan failed: The server API Key is not valid or does not have permissions for this model.";
             } else if (error.message.includes('FAILED_PRECONDITION')) {
-                 errorMessage = "Scan failed: API Key was not provided or is incorrect. Please verify it in Settings.";
+                 errorMessage = "Scan failed: API Key was not provided or is incorrect on the server.";
+            } else if (error.message.includes('billing account')) {
+                 errorMessage = "Scan failed: The project has a billing issue. Please check your Google Cloud project.";
             }
             else {
                 errorMessage = `Scan failed: ${error.message}`;

@@ -19,7 +19,6 @@ import { getSupabaseClient } from "@/lib/supabase";
 import { Switch } from "@/components/ui/switch";
 
 const formSchema = z.object({
-  apiKey: z.string().min(1, "API Key is required."),
   supabaseUrl: z.string().optional(),
   supabaseKey: z.string().optional(),
   noRecDateTemplate: z.string(),
@@ -32,7 +31,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-type ApiStatus = "success" | "failed" | "unconfigured";
 
 const defaultTemplates = {
     noRecDate: `Outstanding Bill\n\nDear [Party],\nMy Bill No. [Bill No], Dt: [Bill Date],\nRs. [Netamount], Total Days: [Total Days].\nInterest days.[interest days], \nInt. Rs.[Interest amt].\n\nFrom: [Company]\n\nDear Sir, this bill is overdue. Please make payment.`,
@@ -91,18 +89,14 @@ INSERT INTO settings (id) values (1);
 
 export function SettingsForm() {
   const { toast } = useToast();
-  const [showApiKey, setShowApiKey] = useState(false);
   const [showSupabaseKey, setShowSupabaseKey] = useState(false);
-  const [apiStatus, setApiStatus] = useState<ApiStatus>("unconfigured");
   const [showSql, setShowSql] = useState<'bills' | 'settings' | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
   
   const defaultVisibleColumns = useMemo(() => billTableColumns.map(c => c.id), []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      apiKey: "",
       supabaseUrl: "https://xwobggszxxdnlzzhgkff.supabase.co",
       supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3b2JnZ3N6eHhkbmx6emhna2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzOTUxNjIsImV4cCI6MjA3MTk3MTE2Mn0.cAI3Tp5ihJY7jPiCGCNN9GAQAHUYcvoaLCOIYTk77_o",
       noRecDateTemplate: defaultTemplates.noRecDate,
@@ -119,18 +113,9 @@ export function SettingsForm() {
 
   const loadSettingsFromLocalStorage = () => {
     try {
-      const storedKey = localStorage.getItem("gemini_api_key");
-      if (storedKey) {
-        form.setValue("apiKey", storedKey);
-        setApiStatus("success");
-      } else {
-        setApiStatus("unconfigured");
-      }
-      
       form.setValue("supabaseUrl", "https://xwobggszxxdnlzzhgkff.supabase.co");
       form.setValue("supabaseKey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3b2JnZ3N6eHhkbmx6emhna2ZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYzOTUxNjIsImV4cCI6MjA3MTk3MTE2Mn0.cAI3Tp5ihJY7jPiCGCNN9GAQAHUYcvoaLCOIYTk77_o");
       
-
       const storedTemplates = localStorage.getItem("whatsappTemplates");
       if (storedTemplates) {
           const parsed = JSON.parse(storedTemplates);
@@ -170,9 +155,6 @@ export function SettingsForm() {
 
   async function onSubmit(values: FormValues) {
     try {
-      // Always save to localStorage first
-      localStorage.setItem("gemini_api_key", values.apiKey);
-      
       const templates = {
           noRecDate: values.noRecDateTemplate,
           pendingInterest: values.pendingInterestTemplate,
@@ -188,13 +170,10 @@ export function SettingsForm() {
       localStorage.setItem("billListColumnConfig", JSON.stringify(columnConfig));
       localStorage.setItem("askForWhatsappOnSave", JSON.stringify(values.askForWhatsappOnSave));
       
-      setApiStatus(values.apiKey ? "success" : "unconfigured");
-
-      toast({ title: "Settings Saved", description: "Your settings have been saved locally." });
+      toast({ title: "Settings Saved", description: "Your local settings have been updated." });
 
     } catch (error) {
         console.error("Could not access localStorage", error);
-        setApiStatus("failed");
         toast({
             title: "Save Failed",
             description: "Could not save settings to local storage. Please check your browser permissions.",
@@ -208,59 +187,9 @@ export function SettingsForm() {
     toast({ title: "Copied!", description: `SQL script for ${script} table copied to clipboard.` });
   };
 
-  const statusInfo = {
-    success: { icon: CheckCircle2, text: "API Key is configured.", color: "text-green-500" },
-    failed: { icon: XCircle, text: "Failed to save API Key.", color: "text-red-500" },
-    unconfigured: { icon: AlertTriangle, text: "API Key is not configured.", color: "text-orange-500" },
-  };
-
-  const CurrentStatus = statusInfo[apiStatus];
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 text-xs">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-primary"/>
-              <div>
-                  <h2 className="text-sm font-bold">Gemini API Configuration</h2>
-                  <p className="text-xs text-muted-foreground">Enter your API key to enable the cheque scanning feature.</p>
-              </div>
-          </div>
-          <div className="space-y-2">
-            <FormField
-              control={form.control}
-              name="apiKey"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="font-bold text-xs">Your Gemini API Key</FormLabel>
-                  <div className="relative">
-                    <FormControl>
-                      <Input
-                        type={showApiKey ? "text" : "password"}
-                        placeholder="Enter your Gemini API Key"
-                        {...field}
-                        className="pr-10 text-xs"
-                      />
-                    </FormControl>
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
-                    >
-                      {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className={`flex items-center gap-2 text-xs font-medium ${CurrentStatus.color}`}>
-                <CurrentStatus.icon className="h-4 w-4" />
-                <span>{CurrentStatus.text}</span>
-            </div>
-          </div>
-        </div>
         
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -433,6 +362,16 @@ export function SettingsForm() {
                 />
             </div>
         </div>
+        
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary"/>
+              <div>
+                  <h2 className="text-sm font-bold">API &amp; Database Configuration</h2>
+                  <p className="text-xs text-muted-foreground">For local development, set your Gemini API Key in the `.env` file. For production, set it as an environment variable in your hosting provider (e.g., Netlify).</p>
+              </div>
+          </div>
+        </div>
 
         <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -553,8 +492,8 @@ export function SettingsForm() {
         </div>
 
         <div className="flex justify-end pt-2">
-            <Button type="submit" size="lg" disabled={isSyncing} className="text-xs">
-                {isSyncing ? 'Syncing...' : 'Save All Settings'}
+            <Button type="submit" size="lg" className="text-xs">
+                Save All Settings
             </Button>
         </div>
       </form>

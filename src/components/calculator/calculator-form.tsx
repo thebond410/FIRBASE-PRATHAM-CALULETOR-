@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Camera, Loader2, Save, Upload, Check, ChevronsUpDown, X } from "lucide-react";
+import { Camera, Loader2, Save, Upload, Check, ChevronsUpDown } from "lucide-react";
 import { scanCheque } from "@/app/actions";
 import { Label } from "@/components/ui/label";
 import { saveBill, getParties, getUnpaidBillsByParty, getCompaniesByParty, findMatchingBill } from "@/lib/data";
@@ -113,7 +113,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     },
   });
 
-  const { control, setValue, getValues, trigger, formState } = form;
+  const { control, setValue, formState } = form;
 
   const watchedParty = useWatch({ control, name: 'party' });
   const watchedCompanyName = useWatch({ control, name: 'companyName' });
@@ -267,50 +267,17 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     }
   }, [watchedBillDate, watchedRecDate, watchedCreditDays, watchedNetAmount, watchedBillNos, bill, watchedInterestPaid, watchedRecAmount, watchedParty, watchedCompanyName]);
 
-  const triggerScan = useCallback(() => {
-    try {
-        const apiKey = localStorage.getItem('gemini_api_key');
-        if (!apiKey) {
-            toast({
-                title: "API Key Not Configured",
-                description: "Please configure your Gemini API key in the Settings page.",
-                variant: "destructive",
-            });
-            return false;
-        }
-        return apiKey;
-    } catch (error) {
-        console.error("Could not read from localStorage", error);
-        toast({ title: "Local Storage Error", description: "Could not read API key from local storage.", variant: "destructive"});
-        return false;
-    }
-  }, [toast]);
-
-  const handleCameraScanClick = () => {
-    if (triggerScan()) {
-        cameraInputRef.current?.click();
-    }
-  }
-
-  const handleFileUploadClick = () => {
-    if (triggerScan()) {
-        fileInputRef.current?.click();
-    }
-  }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    const apiKey = triggerScan();
-    if (!apiKey) return;
 
     setIsScanning(true);
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
       const dataUri = reader.result as string;
-      const result = await scanCheque({ photoDataUri: dataUri, apiKey });
+      const result = await scanCheque({ photoDataUri: dataUri });
 
       if (result.success && result.data) {
         const { payeeName, partyName, date, amount, chequeNumber, bankName } = result.data;
@@ -545,11 +512,11 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1">
         <div className="flex justify-end gap-2 p-1">
-            <Button type="button" onClick={handleCameraScanClick} className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90">
+            <Button type="button" onClick={() => cameraInputRef.current?.click()} className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90">
                 {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
                 Camera Scan
             </Button>
-            <Button type="button" onClick={handleFileUploadClick} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
+            <Button type="button" onClick={() => fileInputRef.current?.click()} className="bg-gradient-to-r from-accent to-primary hover:opacity-90">
                 {isScanning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
                 Upload File
             </Button>
