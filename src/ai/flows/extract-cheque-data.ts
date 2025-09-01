@@ -54,13 +54,13 @@ const extractChequeDataFlow = ai.defineFlow(
     inputSchema: ExtractChequeDataInputSchema,
     outputSchema: ExtractChequeDataOutputSchema,
   },
-  async input => {
+  async (input) => {
     const { output } = await ai.generate({
         model: 'googleai/gemini-1.5-flash-latest',
-        prompt: {
-            text: CHEQUE_EXTRACTION_PROMPT,
-            media: [{ url: input.photoDataUri }],
-        },
+        prompt: [
+            { text: CHEQUE_EXTRACTION_PROMPT },
+            { media: { url: input.photoDataUri } },
+        ],
         output: { schema: ExtractChequeDataOutputSchema },
         apiKey: input.apiKey, // Pass the API key dynamically
     });
