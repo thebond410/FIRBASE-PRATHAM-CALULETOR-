@@ -100,15 +100,14 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
     }
     
     const billsFromFile: Omit<Bill, 'id' | 'created_at' | 'updated_at'>[] = [];
+    const uniqueIdentifiers = new Set<string>();
 
     for (const row of jsonData) {
-        // Create a mapping of lowercase, space-removed header names to their original keys
         const keyMap: { [key: string]: string } = {};
         for (const key in row) {
             keyMap[key.replace(/\s+/g, '').toLowerCase()] = key;
         }
 
-        // Helper function to safely get values using the mapped keys, trying multiple variations
         const getValue = (...keys: string[]) => {
             for (const key of keys) {
                 const mappedKey = keyMap[key.toLowerCase().replace(/\s+/g, '')];
@@ -120,23 +119,33 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
             return null;
         };
 
-        const parsedDate = parseDate(getValue('billDate', 'billdate'));
-        if (!parsedDate) {
-            console.warn(`Skipping row due to invalid billDate format: ${JSON.stringify(row)}. Expected dd/MM/yyyy.`);
+        const companyName = String(getValue('companyName', 'company') || '');
+        const billNo = String(getValue('billNo', 'billnumber', 'bill#') || '');
+        const billDateValue = getValue('billDate', 'billdate');
+        const parsedDate = parseDate(billDateValue);
+        
+        if (!companyName || !billNo || !parsedDate) {
+            console.warn(`Skipping row due to missing required fields (company, billNo, or billDate): ${JSON.stringify(row)}`);
             continue;
         }
         
+        const formattedDate = format(parsedDate, 'yyyy-MM-dd');
+        const uniqueId = `${companyName}-${billNo}-${formattedDate}`;
+        
+        if (uniqueIdentifiers.has(uniqueId)) {
+            continue; // Skip duplicate within the file
+        }
+        uniqueIdentifiers.add(uniqueId);
+        
         const recDateValue = getValue('recDate', 'recdate');
-        // Parse recDate. If it's empty, null, or invalid, it will result in null.
         const parsedRecDate = parseDate(String(recDateValue));
 
-
         billsFromFile.push({
-            billDate: format(parsedDate, 'yyyy-MM-dd'),
+            billDate: formattedDate,
             recDate: parsedRecDate ? format(parsedRecDate, 'yyyy-MM-dd') : null,
-            billNo: String(getValue('billNo', 'billnumber', 'bill#') || ''),
+            billNo: billNo,
             party: String(getValue('party', 'partyName') || ''),
-            companyName: String(getValue('companyName', 'company') || ''),
+            companyName: companyName,
             mobile: String(getValue('mobile', 'mobileno') || ''),
             chequeNumber: String(getValue('chequeNumber', 'chqno', 'chequeno') || ''),
             bankName: String(getValue('bankName', 'bank') || ''),
@@ -151,14 +160,41 @@ export async function importBills(fileBuffer: ArrayBuffer, fileType: string): Pr
     }
 
     if(billsFromFile.length === 0) {
-        return { success: false, error: "No valid bill data found to import." };
+        return { success: true, count: 0, skipped: jsonData.length };
+    }
+    
+    // Check for existing bills in the database
+    const orFilter = billsFromFile.map(bill => 
+      `and(companyName.eq.${bill.companyName},billNo.eq.${bill.billNo},billDate.eq.${bill.billDate})`
+    ).join(',');
+
+    const { data: existingBills, error: fetchError } = await supabase
+      .from('bills')
+      .select('companyName,billNo,billDate')
+      .or(orFilter);
+
+    if (fetchError) {
+      console.error("Error checking for existing bills:", fetchError);
+      return { success: false, error: `Database check failed: ${fetchError.message}` };
+    }
+
+    const existingBillIds = new Set(existingBills.map(b => `${b.companyName}-${b.billNo}-${b.billDate}`));
+
+    const billsToInsert = billsFromFile.filter(bill => {
+        const uniqueId = `${bill.companyName}-${bill.billNo}-${bill.billDate}`;
+        return !existingBillIds.has(uniqueId);
+    });
+
+    const skippedCount = billsFromFile.length - billsToInsert.length;
+
+    if (billsToInsert.length === 0) {
+        return { success: true, count: 0, skipped: skippedCount };
     }
 
     try {
-        // Using a single insert operation for batch processing is much faster.
-        const { error } = await supabase.from('bills').insert(billsFromFile);
-        if (error) throw error;
-        return { success: true, count: billsFromFile.length, skipped: 0 };
+        const { error: insertError } = await supabase.from('bills').insert(billsToInsert);
+        if (insertError) throw insertError;
+        return { success: true, count: billsToInsert.length, skipped: skippedCount };
     } catch (err: any) {
         console.error("Error importing bills:", err);
         return { success: false, error: `Database insert failed: ${err.message}` };
