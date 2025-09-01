@@ -52,6 +52,7 @@ type FormValues = z.infer<typeof formSchema>;
 const formatDateForInput = (date: Date | string | null | undefined): string => {
     if (!date) return "";
     const parsed = typeof date === 'string' ? parseDate(date) : date;
+    // HTML date inputs need 'yyyy-MM-dd' format to work correctly
     return parsed ? format(parsed, 'yyyy-MM-dd') : "";
 }
 
@@ -290,6 +291,10 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             if (error) {
                 toast({ title: "Scan Partially Successful", description: error, variant: "default" });
             }
+            
+            if (!date) {
+                toast({ title: "Scan Failed", description: "Could not extract the date from the cheque. Please enter it manually.", variant: "destructive" });
+            }
 
             const recAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
 
@@ -493,15 +498,52 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     <FormField
         control={control}
         name={name}
-        render={({ field }) => (
-            <FormItem>
-                <FormLabel className="text-[11px] font-bold">{label}</FormLabel>
-                <FormControl>
-                    <Input {...field} type={type} readOnly={readOnly} className={cn("h-9 text-[11px] font-bold", readOnly && "bg-muted")} value={field.value ?? ""} onChange={(e) => field.onChange( e.target.value)} />
-                </FormControl>
-                <FormMessage />
-            </FormItem>
-        )}
+        render={({ field }) => {
+            let displayValue = field.value ?? "";
+            if (type === 'date' && field.value) {
+                const parsed = parseDate(String(field.value));
+                displayValue = parsed ? format(parsed, 'dd/MM/yyyy') : 'Invalid Date';
+            }
+
+            return (
+                <FormItem>
+                    <FormLabel className="text-[11px] font-bold">{label}</FormLabel>
+                    <div className="relative">
+                        {type === 'date' ? (
+                             <Input
+                                {...field}
+                                type="text"
+                                readOnly
+                                className={cn("h-9 text-[11px] font-bold", readOnly && "bg-muted")}
+                                value={displayValue}
+                                placeholder="DD/MM/YYYY"
+                             />
+                        ) : (
+                             <FormControl>
+                                <Input 
+                                    {...field} 
+                                    type={type} 
+                                    readOnly={readOnly} 
+                                    className={cn("h-9 text-[11px] font-bold", readOnly && "bg-muted")} 
+                                    value={field.value ?? ""} 
+                                    onChange={(e) => field.onChange(e.target.value)} 
+                                />
+                            </FormControl>
+                        )}
+                         {type === 'date' && (
+                             <input
+                                type="date"
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                value={formatDateForInput(field.value as string)}
+                                onChange={(e) => field.onChange(e.target.value)}
+                                disabled={readOnly}
+                            />
+                        )}
+                    </div>
+                    <FormMessage />
+                </FormItem>
+            );
+        }}
     />
   );
   
@@ -768,5 +810,3 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </>
   );
 }
-
-    

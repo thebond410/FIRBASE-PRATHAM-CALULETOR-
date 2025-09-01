@@ -23,7 +23,7 @@ export type ExtractChequeDataInput = z.infer<typeof ExtractChequeDataInputSchema
 const ExtractChequeDataOutputSchema = z.object({
   payeeName: z.string().describe('The name of the payee written on the "Pay" line. For example, in the phrase "Pay Daksha Enterprise", this would be "Daksha Enterprise". This is the Company Name.'),
   partyName: z.string().describe('The name of the party to whom the cheque is payable. This is the text written after the "For" or "FOR" label. The result should not include the "For" or "FOR" text itself. For example, if the text is "For TRIYA FASHIONS PRIVATE LIMITED", the result should be "TRIYA FASHIONS PRIVATE LIMITED".'),
-  date: z.string().describe('The date on the cheque in DD/MM/YYYY format, extracted from the box in the top-right corner.'),
+  date: z.string().describe('The date on the cheque in DD/MM/YYYY format. This is MANDATORY. It is found in a box in the top-right corner with the format "D D M M Y Y Y Y".'),
   amount: z.string().describe('The numerical amount on the cheque.'),
   chequeNumber: z.string().describe('The 6-digit cheque number, which is the first group of numbers in the MICR line at the bottom of the cheque.'),
   bankName: z.string().describe('The name of the bank on the cheque. This is usually at the top. For example, "Kotak Mahindra Bank".'),
@@ -39,7 +39,7 @@ const CHEQUE_EXTRACTION_PROMPT = `Analyze the provided cheque image. If the imag
 
 - payeeName: Find the line that starts with "Pay" and extract the recipient's name. This is the company name. For example, if the line is "Pay Daksha Enterprise", extract "Daksha Enterprise".
 - partyName: Find the line that starts with "For" or "FOR", which is usually below the amount in the box. Extract the name that follows, but do not include the word "For" in the result. For example, from "For TRIYA FASHIONS PRIVATE LIMITED", extract "TRIYA FASHIONS PRIVATE LIMITED".
-- date: Locate the box in the top-right corner with the format "DD MM YYYY" and extract the date.
+- date: This is a MANDATORY field. Locate the box in the top-right corner with the format "D D M M Y Y Y Y" and extract the date. It must be in DD/MM/YYYY format.
 - amount: Extract the numerical amount written in the box, which usually has "₹" symbol.
 - chequeNumber: Find the MICR code at the bottom of the cheque. The cheque number is the first 6-digit number in this code.
 - bankName: Identify the name of the bank, which is typically located at the top of the cheque.
