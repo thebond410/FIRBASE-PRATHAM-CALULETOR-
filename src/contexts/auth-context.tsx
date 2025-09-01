@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
@@ -17,12 +18,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     try {
-      const storedAuth = sessionStorage.getItem('is-authenticated');
+      const storedAuth = localStorage.getItem('is-authenticated');
       if (storedAuth === 'true') {
         setIsAuthenticated(true);
       }
     } catch (error) {
-      console.error("Could not read from session storage", error);
+      console.error("Could not read from local storage", error);
     }
     setIsLoading(false);
   }, []);
@@ -30,9 +31,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = (password: string) => {
     if (password === 'Manoj34001') {
       try {
-        sessionStorage.setItem('is-authenticated', 'true');
+        localStorage.setItem('is-authenticated', 'true');
       } catch (error) {
-        console.error("Could not write to session storage", error);
+        console.error("Could not write to local storage", error);
       }
       setIsAuthenticated(true);
       return true;
@@ -42,9 +43,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const logout = () => {
     try {
-      sessionStorage.removeItem('is-authenticated');
+      localStorage.removeItem('is-authenticated');
     } catch (error) {
-      console.error("Could not remove from session storage", error);
+      console.error("Could not remove from local storage", error);
     }
     setIsAuthenticated(false);
   };
