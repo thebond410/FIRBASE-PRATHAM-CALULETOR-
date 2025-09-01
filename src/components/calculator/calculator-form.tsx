@@ -269,20 +269,37 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
   }, [watchedBillDate, watchedRecDate, watchedCreditDays, watchedNetAmount, watchedBillNos, bill, watchedInterestPaid, watchedRecAmount, watchedParty, watchedCompanyName]);
 
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, source: 'camera' | 'file') => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      return;
+    }
 
     setIsScanning(true);
+    let dataUri: string;
+    
+    try {
+      dataUri = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const result = reader.result;
+            if (typeof result === 'string' && result.startsWith('data:')) {
+                resolve(result);
+            } else {
+                reject(new Error("File could not be read as a valid Data URI."));
+            }
+        };
+        reader.onerror = (error) => reject(error);
+      });
+    } catch (readError: any) {
+        console.error("File reading error:", readError);
+        toast({ title: "File Error", description: `Could not read the selected file. Please try again.`, variant: "destructive" });
+        setIsScanning(false);
+        return;
+    }
 
     try {
-        const dataUri = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = (error) => reject(error);
-        });
-
         const result = await scanCheque({ photoDataUri: dataUri });
 
         if (result.success && result.data) {
@@ -327,13 +344,20 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         } else {
             toast({ title: "Scan Failed", description: result.error, variant: "destructive" });
         }
-    } catch (error: any) {
-        toast({ title: "File Error", description: `Could not read the selected file. Please try again.`, variant: "destructive" });
+    } catch (scanError: any) {
+        console.error("Scanning error:", scanError);
+        toast({ title: "Scan Error", description: scanError.message || "An unknown error occurred during scan.", variant: "destructive" });
     } finally {
         setIsScanning(false);
-         // Important for mobile browsers: reset the input value to allow re-selecting the same file
-        if(cameraInputRef.current) cameraInputRef.current.value = "";
-        if(fileInputRef.current) fileInputRef.current.value = "";
+         // Reset the specific input after a short delay to ensure processing is complete
+         // This is crucial for mobile browsers to allow re-selecting the same file.
+        setTimeout(() => {
+            if (source === 'camera' && cameraInputRef.current) {
+                cameraInputRef.current.value = "";
+            } else if (source === 'file' && fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }, 100);
     }
   };
   
@@ -572,7 +596,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
               capture="environment" 
               accept="image/*"
               className="hidden" 
-              onChange={handleFileChange}
+              onChange={(e) => handleFileChange(e, 'camera')}
               ref={cameraInputRef}
             />
              <input 
@@ -580,7 +604,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
               type="file" 
               accept="image/*" 
               className="hidden" 
-              onChange={handleFileChange}
+              onChange={(e) => handleFileChange(e, 'file')}
               ref={fileInputRef}
             />
         </div>
