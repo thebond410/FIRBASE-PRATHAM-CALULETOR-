@@ -328,7 +328,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             toast({ title: "Scan Failed", description: result.error, variant: "destructive" });
         }
     } catch (error: any) {
-        toast({ title: "File Error", description: `Could not read the selected file: ${error.message}`, variant: "destructive" });
+        toast({ title: "File Error", description: `Could not read the selected file. Please try again.`, variant: "destructive" });
     } finally {
         setIsScanning(false);
         if(event.target) {

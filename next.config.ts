@@ -29,7 +29,11 @@ const nextConfig: NextConfig = {
       '*.cloudworkstations.dev',
       '*.firebase.studio',
     ],
-  }
+  },
+  experimental: {
+    // Increase the timeout for server actions
+    serverActionsTimeout: 120, // 2 minutes
+  },
 };
 
 export default nextConfig;
