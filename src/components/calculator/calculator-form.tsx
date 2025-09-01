@@ -273,59 +273,62 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     if (!file) return;
 
     setIsScanning(true);
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      const dataUri = reader.result as string;
-      const result = await scanCheque({ photoDataUri: dataUri });
 
-      if (result.success && result.data) {
-        const { payeeName, partyName, date, amount, chequeNumber, bankName } = result.data;
-        const recAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
+    try {
+        const dataUri = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (error) => reject(error);
+        });
 
-        // Set common fields first
-        if (date) {
-            const parsed = parseDate(date);
-            if(parsed) setValue("recDate", format(parsed, 'yyyy-MM-dd'));
-        }
-        setValue("recAmount", recAmount);
-        setValue("chequeNumber", chequeNumber);
-        setValue("bankName", bankName);
-        setValue("party", partyName, { shouldValidate: true, shouldDirty: true });
-        
-        toast({ title: "Scan Successful", description: "Checking for matching bill..." });
+        const result = await scanCheque({ photoDataUri: dataUri });
 
-        // Force a re-render cycle to ensure `watchedParty` is updated before fetching bills
-        setTimeout(async () => {
-            const matchingBill = await findMatchingBill(partyName, recAmount);
+        if (result.success && result.data) {
+            const { payeeName, partyName, date, amount, chequeNumber, bankName, error } = result.data;
 
-            if (matchingBill) {
-                // If a bill is found, prioritize its data for consistency
-                setValue("companyName", matchingBill.companyName, { shouldDirty: true, shouldValidate: true });
-                // Trigger selection of the bill number
-                setTimeout(() => {
-                    setValue("billNos", [matchingBill.billNo], { shouldDirty: true, shouldValidate: true });
-                }, 100); // Small delay to ensure company name is set and bill list is filtered
-                toast({ title: "Bill Matched!", description: `Automatically selected bill #${matchingBill.billNo} for ${matchingBill.companyName}.` });
-            } else {
-                // If no matching bill, use the scanned payeeName as the company name
-                setValue("companyName", payeeName, { shouldDirty: true, shouldValidate: true });
-                toast({ title: "No Unique Bill Match", description: "Company and Party populated. Please select the bill manually.", variant: "default" });
+            if (error) {
+                toast({ title: "Scan Partially Successful", description: error, variant: "default" });
             }
-        }, 0);
 
+            const recAmount = parseFloat(amount.replace(/[^0-9.]/g, '')) || 0;
 
-      } else {
-        toast({ title: "Scan Failed", description: result.error, variant: "destructive" });
-      }
-      setIsScanning(false);
-       if(event.target) {
-        event.target.value = "";
-      }
-    };
-    reader.onerror = () => {
-        toast({ title: "File Error", description: "Could not read the selected file.", variant: "destructive" });
+            if (date) {
+                const parsed = parseDate(date);
+                if(parsed) setValue("recDate", format(parsed, 'yyyy-MM-dd'), { shouldDirty: true });
+            }
+            setValue("recAmount", recAmount, { shouldDirty: true });
+            setValue("chequeNumber", chequeNumber, { shouldDirty: true });
+            setValue("bankName", bankName, { shouldDirty: true });
+            setValue("party", partyName.toUpperCase(), { shouldValidate: true, shouldDirty: true });
+
+            toast({ title: "Scan Successful", description: "Checking for matching bill..." });
+
+            setTimeout(async () => {
+                const matchingBill = await findMatchingBill(partyName.toUpperCase(), recAmount);
+
+                if (matchingBill) {
+                    setValue("companyName", matchingBill.companyName.toUpperCase(), { shouldDirty: true, shouldValidate: true });
+                    setTimeout(() => {
+                        setValue("billNos", [matchingBill.billNo], { shouldDirty: true, shouldValidate: true });
+                    }, 100);
+                    toast({ title: "Bill Matched!", description: `Automatically selected bill #${matchingBill.billNo} for ${matchingBill.companyName}.` });
+                } else {
+                    setValue("companyName", payeeName.toUpperCase(), { shouldDirty: true, shouldValidate: true });
+                    toast({ title: "No Unique Bill Match", description: "Company and Party populated. Please select the bill manually.", variant: "default" });
+                }
+            }, 100);
+
+        } else {
+            toast({ title: "Scan Failed", description: result.error, variant: "destructive" });
+        }
+    } catch (error: any) {
+        toast({ title: "File Error", description: `Could not read the selected file: ${error.message}`, variant: "destructive" });
+    } finally {
         setIsScanning(false);
+        if(event.target) {
+            event.target.value = "";
+        }
     }
   };
   
@@ -406,8 +409,10 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
           toast({ title: `Error`, description: `Could not find original data for bill number ${billNo}.`, variant: "destructive" });
           return null;
       }
-      return { ...originalBill, ...values };
-    }).filter(b => b !== null) as (Bill & FormValues)[];
+       // This is the fix: exclude billNos from the object being merged.
+      const { billNos, ...restOfValues } = values;
+      return { ...originalBill, ...restOfValues };
+    }).filter(b => b !== null) as (Bill & Omit<FormValues, 'billNos'>)[];
     
     if (billsToSave.length === 0) {
         setIsSaving(false);
@@ -524,6 +529,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
               id="camera-scan" 
               type="file" 
               capture="environment" 
+              accept="image/*"
               className="hidden" 
               onChange={handleFileChange}
               ref={cameraInputRef}
@@ -762,3 +768,5 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
     </>
   );
 }
+
+    
