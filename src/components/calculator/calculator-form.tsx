@@ -331,9 +331,9 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
         toast({ title: "File Error", description: `Could not read the selected file. Please try again.`, variant: "destructive" });
     } finally {
         setIsScanning(false);
-        if(event.target) {
-            event.target.value = "";
-        }
+         // Important for mobile browsers: reset the input value to allow re-selecting the same file
+        if(cameraInputRef.current) cameraInputRef.current.value = "";
+        if(fileInputRef.current) fileInputRef.current.value = "";
     }
   };
   
@@ -502,7 +502,7 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
             let displayValue = field.value ?? "";
             if (type === 'date' && field.value) {
                 const parsed = parseDate(String(field.value));
-                displayValue = parsed ? format(parsed, 'dd/MM/yyyy') : 'Invalid Date';
+                displayValue = parsed ? format(parsed, 'dd/MM/yyyy') : '';
             }
 
             return (
@@ -511,7 +511,6 @@ export function CalculatorForm({ bill }: { bill?: Bill }) {
                     <div className="relative">
                         {type === 'date' ? (
                              <Input
-                                {...field}
                                 type="text"
                                 readOnly
                                 className={cn("h-9 text-[11px] font-bold", readOnly && "bg-muted")}
